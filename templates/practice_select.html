@@ -1,0 +1,7 @@
+<h1>Select a practice set:</h1>
+<ul>
+{% for set in practice_sets %}
+    <li><a href="{{ url_for('practice', active_set = set) }}">{{ set.label }}</a></li>
+{% endfor %}
+</ul>
+

@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% block title %}Verb View{% endblock %}
+{% block content %}
+    <body class="centered">
+
+
+    <form action="" method="POST" class="add">
+        {{ form.csrf_token }}
+
+        <p>{{ form.infinitive.label }}{{ form.infinitive(size=20) }}</p>
+
+        {% if form.infinitive.errors %}
+            <ul>
+                {% for error in form.infinitive.errors %}
+                    <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
+
+       {{ form.form.label }}{{ form.form(size=7) }}
+
+        {% if form.form.errors %}
+            <ul>
+                {% for error in form.form.errors %}
+                    <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
+        <input type='submit' value="add">
+    </form>
+
+    {% for message in get_flashed_messages() %}
+        <h2>{{ message }}</h2>
+    {% endfor %}
+
+
+
+    <div class="setup-tables">
+        <div class="centered">
+            <h2>INFINITIVES</h2>
+            <table>
+                <tr>
+                    <th>Infinitive</th>
+                    <th>Form</th>
+                </tr>
+
+                {% for infinitive  in infinitives_list %}
+                    <tr>
+                        <td>{{ infinitive.infinitive }}</td>
+                        <td>{{ infinitive.form.form }}</td>
+                    </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
+
+    </body>
+
+{% endblock %}
