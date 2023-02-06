@@ -16,5 +16,6 @@ class InfinitiveForm(FlaskForm):
 class CreateSetForm(FlaskForm):
     title = StringField('Title', validators=[DataRequired()])
     tenses = MultiCheckBox('Tenses', choices=[])
-    infinitives = MultiCheckBox('Infinitives', choices=[])
+    verb_type = MultiCheckBox('Type', choices=[])
+    infinitives = TextAreaField('Infinitives')
 

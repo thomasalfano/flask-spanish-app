@@ -28,8 +28,16 @@
                     {% endfor %}
                 </ul>
             {% endif %}
-
-            <h2>Select Infinitives to be used:</h2>
+            <h2>Preset Infinitives:</h2>
+            <p>{{ form.verb_type(size=7) }}</p>
+            {% if form.verb_type.errors %}
+                <ul>
+                    {% for error in form.verb_type.errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+            <h2>Custom Infinitives to be used:</h2>
             <p>{{ form.infinitives(size=5) }}</p>
 
             {% if form.infinitives.errors %}
