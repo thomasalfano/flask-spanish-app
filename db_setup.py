@@ -2,15 +2,36 @@ from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
 
-set_verbs = db.Table('set_verbs',
-                     db.Column('ps_id', db.Integer, db.ForeignKey('practice_set.id')),
-                     db.Column('infin_id', db.Integer, db.ForeignKey('verbs.id'))
-                     )
+# set_verbs = db.Table('set_verbs',
+#                      db.Column('ps_id', db.Integer, db.ForeignKey('practice_set.id')),
+#                      db.Column('infin_id', db.Integer, db.ForeignKey('verbs.id'))
+#                      )
 
-set_tenses = db.Table('set_tenses',
-                      db.Column('ps_id', db.Integer, db.ForeignKey('practice_set.id')),
-                      db.Column('tense_id', db.Integer, db.ForeignKey('tenses.id'))
-                      )
+
+class SetVerbs(db.Model):
+    __tablename__ = 'set_verbs'
+    id = db.Column(db.Integer, primary_key=True)
+    set_id = db.Column(db.Integer, db.ForeignKey('practice_set.id'))
+    verb_id = db.Column(db.Integer, db.ForeignKey('verbs.id'))
+
+    verb = db.relationship('Verb', back_populates='practice_sets')
+    practice_set = db.relationship('Practice_Set', back_populates='verbs')
+
+
+class SetTenses(db.Model):
+    __tablename__ = 'set_tenses'
+    id = db.Column(db.Integer, primary_key=True)
+    set_id = db.Column(db.Integer, db.ForeignKey('practice_set.id'))
+    tense_id = db.Column(db.Integer, db.ForeignKey('tenses.id'))
+
+    tense = db.relationship('Tense', back_populates='practice_sets')
+    practice_set = db.relationship('Practice_Set', back_populates='tenses')
+
+
+# set_tenses = db.Table('set_tenses',
+#                       db.Column('ps_id', db.Integer, db.ForeignKey('practice_set.id')),
+#                       db.Column('tense_id', db.Integer, db.ForeignKey('tenses.id'))
+#                       )
 
 
 # verb table (id, infin, form(fk))
@@ -21,7 +42,7 @@ class Verb(db.Model):
     form_id = db.Column(db.Integer, db.ForeignKey('forms.id'))
 
     # relationship
-    set_verbs = db.relationship('Practice_Set', secondary=set_verbs, backref='included_verbs')
+    practice_sets = db.relationship('SetVerbs', back_populates='verb')
 
     def __repr__(self):
         return f"Verb:'{self.infinitive}', 'Form:{self.form_id}')"
@@ -57,7 +78,7 @@ class Tense(db.Model):
     tense = db.Column(db.String(64), unique=True)
 
     # relationship
-    set_tenses = db.relationship('Practice_Set', secondary=set_tenses, backref='included_tenses')
+    practice_sets = db.relationship('SetTenses', back_populates='tense')
 
     def __repr__(self):
         return f'{self.tense}'
@@ -68,6 +89,10 @@ class Practice_Set(db.Model):
     __tablename__ = 'practice_set'
     id = db.Column(db.Integer, primary_key=True)
     label = db.Column(db.String(100), unique=True)
+
+    # relationship
+    verbs = db.relationship('SetVerbs', back_populates='practice_set')
+    tenses = db.relationship('SetTenses', back_populates='practice_set')
 
     def __repr__(self):
         return f'{self.label}'

@@ -1,6 +1,6 @@
 from flask import Flask, render_template, redirect, url_for, request, session, flash
 import random
-from db_setup import db, Verb, set_verbs, set_tenses, Form, Subject, Practice_Set, Tense
+from db_setup import db, Verb, SetVerbs,SetTenses, Form, Subject, Practice_Set, Tense
 from conjugate import conjugate_ar, conjugate_ir, conjugate_er
 from forms import InfinitiveForm, CreateSetForm
 from flask_migrate import Migrate
@@ -91,13 +91,19 @@ def setup():
             #       1          2
             #       1          3
             for infin in infinitives:
-                query_infin = db.session.query(Verb).filter_by(infinitive=infin).first()
-                query_set.included_verbs.append(query_infin)
+                # query the infinitive
+                query_infin = Verb.query.filter_by(infinitive=infin).first()
+
+                set_infin = SetVerbs(verb=query_infin, practice_set=query_set)
+                db.session.add(set_infin)
 
             # repeat above step for tenses
             for i in tenses:
-                query_tense = db.session.query(Tense).filter_by(tense=i).first()
-                query_set.included_tenses.append(query_tense)
+                # query the tense
+                query_tense = Tense.query.filter_by(tense=i).first()
+                
+                set_tense = SetTenses(tense=query_tense, practice_set=query_set)
+                db.session.add(set_tense)
             db.session.commit()
             return redirect(url_for('practice_select'))
         else:
