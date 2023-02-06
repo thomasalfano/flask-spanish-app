@@ -1,3 +1,6 @@
+import string
+
+
 def conjugate_ar(infin, subj):
     if subj == 'yo':
         return infin[:-2] + 'o'
@@ -41,6 +44,16 @@ def conjugate_ir(infin, subj):
         return infin[:-2] + 'is'
     elif subj == 'ellos/ellas/ustedes':
         return infin[:-2] + 'en'
+
+
+def parse_text(form_data):
+
+    form_split = form_data.split()
+    stripped_list = [word.strip(string.punctuation) for word in form_split]
+    for i in range(len(stripped_list)):
+        stripped_list[i] = stripped_list[i].lower()
+        i += 1
+    return stripped_list
 
 
 if __name__ == '__main__':

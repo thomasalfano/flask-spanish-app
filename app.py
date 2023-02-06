@@ -1,12 +1,11 @@
 from flask import Flask, render_template, redirect, url_for, request, session, flash
 import random
-from db_setup import db, Verb, SetVerbs,SetTenses, Form, Subject, Practice_Set, Tense
-from conjugate import conjugate_ar, conjugate_ir, conjugate_er
+from db_setup import db, Verb, SetVerbs, SetTenses, Form, Subject, Practice_Set, Tense
+from conjugate import conjugate_ar, conjugate_ir, conjugate_er, parse_text
 from forms import InfinitiveForm, CreateSetForm
-from flask_migrate import Migrate
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'C2HWGVoMGfNTBsrYQg8EcMrdTimkZfAb'
+app.config['SECRET_KEY'] = 'C2HWGVoMGfNTBsrYQg8EcMrdTimZfAb'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres::@localhost/flask_spanish'
 
 # initialize db with app instance
@@ -30,27 +29,31 @@ def verb_view():
     # if form validates, query the verb table using form data
     # add new entry if verb does not exist
     if form.validate_on_submit():
-        existing_verb = Verb.query.filter_by(infinitive=form.infinitive.data).first()
+        infin_list = parse_text(form.infinitive.data)
+        print(infin_list)
 
-        # if not an existing verb in db
-        # add new verb to db using form data
-        if not existing_verb:
-            form_infin = form.infinitive.data
-            verb_form = db.session.query(Form).filter_by(form=form.form.data).first()
-            new_verb = Verb(infinitive=form_infin, form=verb_form)
-            db.session.add(new_verb)
-            db.session.commit()
+        # add everything from text-field input
+        for verb in infin_list:
+            existing_verb = Verb.query.filter_by(infinitive=verb).first()
 
-            # clear form data after successful entry
-            form.infinitive.data = ''
-            form.form.data = ''
-            # query all verbs so that new addition shows in HTML rendering
-            infinitives_list = Verb.query.all()
+            # if not an existing verb in db
+            # add new verb to db using form data
+            if not existing_verb:
+                form_infin = verb
+                verb_form = db.session.query(Form).filter_by(form=form.form.data).first()
+                new_verb = Verb(infinitive=form_infin, form=verb_form)
+                db.session.add(new_verb)
+            else:
+                flash('This infinitive exists already', category='message')
+                return render_template('verb_view.html', infinitives_list=infinitives_list, form=form)
 
-            return render_template('verb_view.html', infinitives_list=infinitives_list, form=form)
-        else:
-            flash('This infinitive exists already', category='message')
-            return render_template('verb_view.html', infinitives_list=infinitives_list, form=form)
+        # clear form data after successful entry
+        form.infinitive.data = ''
+        form.form.data = ''
+        # commit all the new additions to the db
+        db.session.commit()
+        infinitives_list = Verb.query.all()
+        return render_template('verb_view.html', infinitives_list=infinitives_list, form=form)
     else:
         return render_template('verb_view.html', infinitives_list=infinitives_list, form=form)
 
@@ -61,11 +64,10 @@ def setup():
     form = CreateSetForm()
     tense_choices = Tense.query.all()
     infinitives_list = Verb.query.all()
-    form.tenses.choices = [str(i) for i in tense_choices]
+    form.tenses.choices = tense_choices
     form.infinitives.choices = [i.infinitive for i in infinitives_list]
 
     if form.validate_on_submit():
-
         set_title = form.title.data
         tenses = form.tenses.data
         infinitives = form.infinitives.data
@@ -101,7 +103,7 @@ def setup():
             for i in tenses:
                 # query the tense
                 query_tense = Tense.query.filter_by(tense=i).first()
-                
+
                 set_tense = SetTenses(tense=query_tense, practice_set=query_set)
                 db.session.add(set_tense)
             db.session.commit()
@@ -125,8 +127,8 @@ def practice_select():
 def practice(active_set):
     session['set'] = active_set
     query_set = db.session.query(Practice_Set).filter_by(label=active_set).first()
-    available_infinitives = db.session.query(Verb).all()
-    available_tenses = db.session.query(Tense).all()
+    available_infinitives = db.session.query(SetVerbs).filter_by(set_id=query_set.id).all()
+    available_tenses = db.session.query(SetTenses).filter_by(set_id=query_set.id).all()
     session['correct'] = False
     session['incorrect'] = False
     subjects = Subject.query.all()
@@ -156,9 +158,9 @@ def practice(active_set):
         rand_subj = random.choice(subjects)
         rand_tense = random.choice(available_tenses)
 
-        session['infinitive'] = rand_infin.infinitive
+        session['infinitive'] = rand_infin.verb.infinitive
         session['subj'] = rand_subj.subject
-        session['tense'] = rand_tense.tense
+        session['tense'] = rand_tense.tense.tense
         infinitive = session.get('infinitive')
         subj = session.get('subj')
         tense = session.get('tense')

@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, RadioField, BooleanField, widgets, SelectMultipleField, SelectField
+from wtforms import StringField, TextAreaField, widgets, SelectMultipleField, SelectField
 from wtforms.validators import DataRequired, InputRequired
 
 
@@ -9,7 +9,7 @@ class MultiCheckBox(SelectMultipleField):
 
 
 class InfinitiveForm(FlaskForm):
-    infinitive = StringField('Infinitive', validators=[DataRequired()])
+    infinitive = TextAreaField('Infinitive', validators=[DataRequired()])
     form = SelectField('Form', choices=[], validators=[InputRequired()])
 
 
