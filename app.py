@@ -66,10 +66,12 @@ def setup():
     form.tenses.choices = [str(i) for i in tense_choices]
 
     # query the ar verbs for form checkbox
-    ar_verbs = Form.query.filter_by(form='ar verbs').all()
+    ar_verbs = Form.query.filter_by(form='ar verbs').first()
+    er_verbs = Form.query.filter_by(form='er verbs').first()
+    ir_verbs = Form.query.filter_by(form='ir verbs').first()
 
     # fill form choices
-    form.verb_type.choices = [type.form for type in ar_verbs]
+    form.verb_type.choices = [ar_verbs.form, ir_verbs.form, er_verbs.form]
 
     if form.validate_on_submit():
         set_title = form.title.data
@@ -92,25 +94,7 @@ def setup():
             # query the addition that was just made
             query_set = db.session.query(Practice_Set).filter_by(label=set_title).first()
 
-            # add preset verb list if any boxes are checked
-            if preset_list:
-                # for all boxes checked, add verbs with that corresponding type
-                for form in preset_list:
-                    query_form = Form.query.filter_by(form=form).first()
-                    query_verbs = Verb.query.filter_by(form=query_form).all()
-                    for verb in query_verbs:
-                        set_infin = SetVerbs(verb=verb, practice_set=query_set)
-                        db.session.add(set_infin)
-                    # repeat above step for tenses
-                    for i in tenses:
-                        # query the tense
-                        query_tense = Tense.query.filter_by(tense=i).first()
-
-                        set_tense = SetTenses(tense=query_tense, practice_set=query_set)
-                        db.session.add(set_tense)
-                db.session.commit()
-                return redirect(url_for('practice_select'))
-            elif any in infinitives:
+            if infinitives:
                 # for infinitives selected in form, add to set_verbs
                 # EX:
                 #    set_id    verb_id
@@ -131,11 +115,27 @@ def setup():
                     set_tense = SetTenses(tense=query_tense, practice_set=query_set)
                     db.session.add(set_tense)
                 db.session.commit()
-                return redirect(url_for('practice_select'))
-            else:
-                flash('no infinitives were included in this set')
-                return render_template('setup.html', form=form)
 
+            # add preset verb list if any boxes are checked
+            if preset_list:
+                # for all boxes checked, add verbs with that corresponding type
+                for form in preset_list:
+                    query_form = Form.query.filter_by(form=form).first()
+                    query_verbs = Verb.query.filter_by(form=query_form).all()
+                    for verb in query_verbs:
+                        set_infin = SetVerbs(verb=verb, practice_set=query_set)
+                        db.session.add(set_infin)
+                    # repeat above step for tenses
+                    for i in tenses:
+                        # query the tense
+                        query_tense = Tense.query.filter_by(tense=i).first()
+
+                        set_tense = SetTenses(tense=query_tense, practice_set=query_set)
+                        db.session.add(set_tense)
+                db.session.commit()
+                return redirect(url_for('practice_select'))
+
+            return redirect(url_for('practice_select'))
     else:
         return render_template('setup.html', form=form)
 
