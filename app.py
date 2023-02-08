@@ -125,8 +125,8 @@ def practice_select():
 def practice(active_set):
     session['set'] = active_set
     query_set = db.session.query(Practice_Set).filter_by(label=active_set).first()
-    available_infinitives = db.session.query(Verb).all()
-    available_tenses = db.session.query(Tense).all()
+    available_infinitives = db.session.query(SetVerbs).filter_by(set_id=query_set.id).all()
+    available_tenses = db.session.query(SetTenses).filter_by(set_id=query_set.id).all()
     session['correct'] = False
     session['incorrect'] = False
     subjects = Subject.query.all()
@@ -156,9 +156,9 @@ def practice(active_set):
         rand_subj = random.choice(subjects)
         rand_tense = random.choice(available_tenses)
 
-        session['infinitive'] = rand_infin.infinitive
+        session['infinitive'] = rand_infin.verb.infinitive
         session['subj'] = rand_subj.subject
-        session['tense'] = rand_tense.tense
+        session['tense'] = rand_tense.tense.tense
         infinitive = session.get('infinitive')
         subj = session.get('subj')
         tense = session.get('tense')
