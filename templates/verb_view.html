@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}Verb View{% endblock %}
 {% block content %}
-    <body class="centered">
+    <body>
 
 
     <form action="" method="POST" class="add">
@@ -18,7 +18,7 @@
         {% endif %}
 
 
-       {{ form.form.label }}{{ form.form(size=7) }}
+        {{ form.form.label }}{{ form.form(size=7) }}
 
         {% if form.form.errors %}
             <ul>
@@ -34,28 +34,33 @@
     {% for message in get_flashed_messages() %}
         <h2>{{ message }}</h2>
     {% endfor %}
-
-
-
     <div class="setup-tables">
-        <div class="centered">
-            <h2>INFINITIVES</h2>
-            <table>
-                <tr>
-                    <th>Infinitive</th>
-                    <th>Form</th>
-                </tr>
+        {% for type in verb_forms %}
 
-                {% for infinitive  in infinitives_list %}
+
+            <div>
+                <h2>{{ type.form.upper() }}</h2>
+                <table>
                     <tr>
-                        <td>{{ infinitive.infinitive }}</td>
-                        <td>{{ infinitive.form.form }}</td>
+                        <th>Infinitive</th>
+                        <th>Form</th>
                     </tr>
-                {% endfor %}
-            </table>
-        </div>
-    </div>
+                    {% for infinitive in infinitives_list %}
+                        {% if infinitive.form.form == type.form %}
+                            <tr>
+                                <td>{{ infinitive.infinitive }}</td>
+                                <td>{{ infinitive.form.form }}</td>
+                            </tr>
+                        {% else %}
+                        {% endif %}
 
+                    {% endfor %}
+
+                </table>
+            </div>
+
+        {% endfor %}
+    </div>
     </body>
 
 {% endblock %}

@@ -2,12 +2,24 @@ from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
 
-# set_verbs = db.Table('set_verbs',
-#                      db.Column('ps_id', db.Integer, db.ForeignKey('practice_set.id')),
-#                      db.Column('infin_id', db.Integer, db.ForeignKey('verbs.id'))
-#                      )
+
+class IrregularConjugation(db.Model):
+    __tablename__ = 'irregular_conjugations'
+    id = db.Column(db.Integer, primary_key=True)
+    infin_id = db.Column(db.Integer, db.ForeignKey('verbs.id'))
+    yo = db.Column(db.String(64), nullable=False)
+    tu = db.Column(db.String(64), nullable=False)
+    el = db.Column(db.String(64), nullable=False)
+    ella = db.Column(db.String(64), nullable=False)
+    usted = db.Column(db.String(64), nullable=False)
+    nosotros = db.Column(db.String(64), nullable=False)
+    nosotras = db.Column(db.String(64), nullable=False)
+    ellos = db.Column(db.String(64), nullable=False)
+    ellas = db.Column(db.String(64), nullable=False)
+    ustedes = db.Column(db.String(64), nullable=False)
 
 
+# db association table for sets and infinitives
 class SetVerbs(db.Model):
     __tablename__ = 'set_verbs'
     id = db.Column(db.Integer, primary_key=True)
@@ -18,6 +30,7 @@ class SetVerbs(db.Model):
     practice_set = db.relationship('Practice_Set', back_populates='verbs')
 
 
+# db association table for sets and verb-tenses
 class SetTenses(db.Model):
     __tablename__ = 'set_tenses'
     id = db.Column(db.Integer, primary_key=True)
@@ -26,12 +39,6 @@ class SetTenses(db.Model):
 
     tense = db.relationship('Tense', back_populates='practice_sets')
     practice_set = db.relationship('Practice_Set', back_populates='tenses')
-
-
-# set_tenses = db.Table('set_tenses',
-#                       db.Column('ps_id', db.Integer, db.ForeignKey('practice_set.id')),
-#                       db.Column('tense_id', db.Integer, db.ForeignKey('tenses.id'))
-#                       )
 
 
 # verb table (id, infin, form(fk))

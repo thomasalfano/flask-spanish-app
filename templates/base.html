@@ -5,15 +5,20 @@
     <title>{% block title %}Conjugation Practice{% endblock %}</title>
     <link rel="stylesheet" href="../static/styles.css">
 </head>
-<body>
-    {% block content %}
-        <nav>
+{% block nav %}
+    <nav>
         <ul>
             <li><a href="{{ url_for('practice_select') }}">Start Practicing</a></li>
             <li><a href="{{ url_for('verb_view') }}">Verb View</a></li>
             <li><a href="{{ url_for('setup') }}">Practice Set Setup</a></li>
+            <li><a href="{{ url_for('add_irregular') }}">Add Irregular Verb Conjugations</a></li>
+
         </ul>
-        </nav>
-    {% endblock %}
+    </nav>
+{% endblock %}
+<body>
+{% block content %}
+
+{% endblock %}
 </body>
 </html>

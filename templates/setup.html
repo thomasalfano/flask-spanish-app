@@ -1,9 +1,9 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
 {% block title %}
     Setup View
 {% endblock %}
 {% block content %}
-    <body>
+
     <div class="centered">
         <form action="" method="POST">
             {{ form.csrf_token }}
@@ -49,11 +49,32 @@
             {% endif %}
 
 
-
             <input type="submit">
 
         </form>
     </div>
-    </body>
+    {% if exists == False %}
+{#        <form action="" method="POST" id="confirm">#}
+{#            {{ confirm_form.csrf_token }}#}
+{#            {% for infinitive in unknown_infinitives %}#}
+{#                {{ infinitive }}#}
+{#                {{ confirm_form.form }}#}
+{##}
+{#            {% endfor %}#}
+{##}
+{#            {% if confirm_form.form.errors %}#}
+{#                <ul>#}
+{#                    {% for error in confirm_form.form.errors %}#}
+{#                        <li>{{ error }}</li>#}
+{#                    {% endfor %}#}
+{#                </ul>#}
+{#            {% endif %}#}
 
+
+{#            <input type="submit">#}
+{#        </form>#}
+        {% for field in unknown_inf_form %}
+            {{ field }}
+        {% endfor %}
+    {% endif %}
 {% endblock %}

@@ -5,7 +5,7 @@ from db_setup import Tense, Form, Subject
 def pop_db():
     tenses = ['past', 'present', 'future']
     forms = ['ar verbs', 'er verbs', 'ir verbs', 'o to ue', 'e to i', 'e to ie', 'irregular']
-    subjects = ['yo', 'tu', 'el/ella/usted', 'nosotros', 'vosotros', 'ellos/ellas/ustedes']
+    subjects = ['yo', 'tu', 'el', 'ella', 'usted', 'nosotros', 'vosotros', 'ellos', 'ellas', 'ustedes']
     for i in tenses:
         db.session.add(Tense(tense=i))
         db.session.commit()
