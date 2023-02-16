@@ -3,8 +3,8 @@ from wtforms.form import BaseForm
 from wtforms import SelectField
 import random
 from db_setup import db, Verb, SetVerbs, SetTenses, Form, Subject, Practice_Set, Tense, IrregularConjugation
-from conjugate import conjugate_ar, conjugate_ir, conjugate_er, parse_text
-from forms import InfinitiveForm, CreateSetForm, ConfirmForm, IrregularForm
+from text_process import parse_text
+from forms import InfinitiveForm, CreateSetForm, IrregularForm
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'C2HWGVoMGfNTBsrYQg8EcMrdTimZfAb'
@@ -23,6 +23,11 @@ def index():
 # add infinitive to list upon successful form completion
 @app.route('/verb-view', methods=['POST', 'GET'])
 def verb_view():
+    """
+    View Function for adding verbs/infinitives to the database.
+
+    :return: Display tables for verbs of every type, and the form used to add to those tables
+    """
     form = InfinitiveForm()
     infinitives_list = Verb.query.all()
     verb_forms = Form.query.all()
@@ -63,6 +68,11 @@ def verb_view():
 # setup route for creating 'practice sets'
 @app.route('/setup', methods=['GET', 'POST'])
 def setup():
+    """
+    View Function for practice set creation.
+
+    :return: Displays form used to create practice sets, display pop-up window for unrecognized verbs.
+    """
     # variables to be used in html templates
     form = CreateSetForm()
     unknown_inf_form = None
@@ -160,15 +170,11 @@ def setup():
 
     if request.method == 'POST':
 
-        print(confirm_form.form.data)
-
         return render_template('setup.html', exists=session.get('exists'),
                                unknown_infinitives=unknown_infinitives,
                                forms=Form.query.all(),
                                form=CreateSetForm(),
                                confirm_form=confirm_form)
-
-        # TODO: program db adding of unknown infins from infin form data
 
     else:
         return render_template('setup.html', form=form, exists=session.get('exists'),
@@ -179,6 +185,10 @@ def setup():
 # route for selecting which 'practice set' to be used
 @app.route('/practice-select', methods=['GET', 'POST'])
 def practice_select():
+    """
+    View Function for selecting what set to use for practice.
+    :return: displays all practice-sets from the database
+    """
     practice_sets = Practice_Set.query.all()
     return render_template('practice_select.html', practice_sets=practice_sets)
 
@@ -186,6 +196,12 @@ def practice_select():
 # student facing practice screen that uses conjugation function to check student answers for correctness
 @app.route('/practice/<active_set>', methods=['GET', 'POST'])
 def practice(active_set):
+    """
+    View function for student practice interaction.
+    :param active_set: The set selected for practicing
+    :return: displays random prompts using verbs, subjects, and tenses associated with the active_set.
+    """
+
     session['set'] = active_set
     query_set = db.session.query(Practice_Set).filter_by(label=active_set).first()
     available_infinitives = db.session.query(SetVerbs).filter_by(set_id=query_set.id).all()
@@ -229,12 +245,72 @@ def practice(active_set):
 
         # conjugate verb through function if function not irregular
         if rand_infin.verb.form_id != irr_form.id:
-            if session.get('infinitive').endswith('ar'):
-                session['correct_answer'] = conjugate_ar(infinitive, subj)
-            if session.get('infinitive').endswith('er'):
-                session['correct_answer'] = conjugate_er(infinitive, subj)
-            if session.get('infinitive').endswith('ir'):
-                session['correct_answer'] = conjugate_ir(infinitive, subj)
+            if infinitive.endswith('ar'):
+                match subj:
+                    case 'yo':
+                        session['correct_answer'] = infinitive[:-2] + 'o'
+                    case 'tu':
+                        session['correct_answer'] = infinitive[:-2] + 'as'
+                    case 'el':
+                        session['correct_answer'] = infinitive[:-2] + 'a'
+                    case 'ella':
+                        session['correct_answer'] = infinitive[:-2] + 'a'
+                    case 'usted':
+                        session['correct_answer'] = infinitive[:-2] + 'a'
+                    case 'nosotros':
+                        session['correct_answer'] = infinitive[:-2] + 'amos'
+                    case 'vosotros':
+                        session['correct_answer'] = infinitive[:-2] + 'ais'
+                    case 'ellos':
+                        session['correct_answer'] = infinitive[:-2] + 'an'
+                    case 'ellas':
+                        session['correct_answer'] = infinitive[:-2] + 'an'
+                    case 'ustedes':
+                        session['correct_answer'] = infinitive[:-2] + 'an'
+            if infinitive.endswith('er'):
+                match subj:
+                    case 'yo':
+                        session['correct_answer'] = infinitive[:-2] + 'o'
+                    case 'tu':
+                        session['correct_answer'] = infinitive[:-2] + 'es'
+                    case 'el':
+                        session['correct_answer'] = infinitive[:-2] + 'e'
+                    case 'ella':
+                        session['correct_answer'] = infinitive[:-2] + 'e'
+                    case 'usted':
+                        session['correct_answer'] = infinitive[:-2] + 'e'
+                    case 'nosotros':
+                        session['correct_answer'] = infinitive[:-2] + 'emos'
+                    case 'vosotros':
+                        session['correct_answer'] = infinitive[:-2] + 'eis'
+                    case 'ellos':
+                        session['correct_answer'] = infinitive[:-2] + 'en'
+                    case 'ellas':
+                        session['correct_answer'] = infinitive[:-2] + 'en'
+                    case 'ustedes':
+                        session['correct_answer'] = infinitive[:-2] + 'en'
+            if infinitive.endswith('ir'):
+                match subj:
+                    case 'yo':
+                        session['correct_answer'] = session.get('infin')[:-2] + 'o'
+                    case 'tu':
+                        session['correct_answer'] = session.get('infin')[:-2] + 'es'
+                    case 'el':
+                        session['correct_answer'] = session.get('infin')[:-2] + 'e'
+                    case 'ella':
+                        session['correct_answer'] = session.get('infin')[:-2] + 'e'
+                    case 'usted':
+                        session['correct_answer'] = session.get('infin')[:-2] + 'e'
+                    case 'nosotros':
+                        session['correct_answer'] = session.get('infin')[:-2] + 'imos'
+                    case 'vosotros':
+                        session['correct_answer'] = session.get('infin')[:-2] + 'is'
+                    case 'ellos':
+                        session['correct_answer'] = session.get('infin')[:-2] + 'en'
+                    case 'ellas':
+                        session['correct_answer'] = session.get('infin')[:-2] + 'en'
+                    case 'ustedes':
+                        session['correct_answer'] = session.get('infin')[:-2] + 'en'
 
         # use db lookup for conjugation
         else:
@@ -273,6 +349,12 @@ def practice(active_set):
 # page for adding irregular, non pattern-following verbs
 @app.route('/add-irregular', methods=['GET', 'POST'])
 def add_irregular():
+    """
+    View function for adding irregular verbs to the databases
+
+    :return: displays a small table of verbs that have the form of 'irregular', along with a form for adding their
+        conjugations.
+    """
     form = IrregularForm()
     ir_form_id = Form.query.filter_by(form='irregular').first()
     infins = Verb.query.filter_by(form=ir_form_id).all()
