@@ -8,7 +8,7 @@
         <form action="" method="POST">
             {{ form.csrf_token }}
             <h2>Name for this practice set:</h2>
-            <p>{{ form.title.label }}{{ form.title(size=20) }}</p>
+            <p>{{ form.title.label }}{{ form.title }}</p>
 
             {% if form.title.errors %}
                 <ul>
@@ -54,27 +54,33 @@
         </form>
     </div>
     {% if exists == False %}
-{#        <form action="" method="POST" id="confirm">#}
-{#            {{ confirm_form.csrf_token }}#}
-{#            {% for infinitive in unknown_infinitives %}#}
-{#                {{ infinitive }}#}
-{#                {{ confirm_form.form }}#}
-{##}
-{#            {% endfor %}#}
-{##}
-{#            {% if confirm_form.form.errors %}#}
-{#                <ul>#}
-{#                    {% for error in confirm_form.form.errors %}#}
-{#                        <li>{{ error }}</li>#}
-{#                    {% endfor %}#}
-{#                </ul>#}
-{#            {% endif %}#}
+        {#        <form action="" method="POST" id="confirm">#}
+        {#            {{ confirm_form.csrf_token }}#}
+        {#            {% for infinitive in unknown_infinitives %}#}
+        {#                {{ infinitive }}#}
+        {#                {{ confirm_form.form }}#}
+        {##}
+        {#            {% endfor %}#}
+        {##}
+        {#            {% if confirm_form.form.errors %}#}
+        {#                <ul>#}
+        {#                    {% for error in confirm_form.form.errors %}#}
+        {#                        <li>{{ error }}</li>#}
+        {#                    {% endfor %}#}
+        {#                </ul>#}
+        {#            {% endif %}#}
 
 
-{#            <input type="submit">#}
-{#        </form>#}
-        {% for field in unknown_inf_form %}
-            {{ field }}
-        {% endfor %}
+        {#            <input type="submit">#}
+        {#        </form>#}
+        {#        {% for field in unknown_inf_form %}#}
+        <form action="" method="post" class="popover">
+            {{ unknown_inf_form.csrf_token }}
+            {{ unknown_inf_form.unknown_verb }}
+            <input type="submit">
+        </form>
+
+        {#        {% endfor %}#}
+        {#        <input type="submit">#}
     {% endif %}
 {% endblock %}

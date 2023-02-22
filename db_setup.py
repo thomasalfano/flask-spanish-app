@@ -74,7 +74,7 @@ class Verb(db.Model):
     practice_sets = db.relationship('SetVerbs', back_populates='verb')
 
     def __repr__(self):
-        return f"Verb:'{self.infinitive}', 'Form:{self.form_id}')"
+        return f"infinitive:'{self.infinitive}', 'form_id:{self.form_id}'"
 
 
 # form [id, label] ("static")

@@ -1,5 +1,5 @@
-from flask_wtf import FlaskForm
-from wtforms import StringField, TextAreaField, widgets, SelectMultipleField, SelectField
+from flask_wtf import FlaskForm, Form
+from wtforms import StringField, TextAreaField, widgets, SelectMultipleField, SelectField, FieldList, FormField
 from wtforms.validators import DataRequired, InputRequired
 
 
@@ -54,3 +54,13 @@ class IrregularForm(FlaskForm):
     ellos_form = StringField('ellos conjugation', validators=[DataRequired()])
     ellas_form = StringField('ellas conjugation', validators=[DataRequired()])
     ustedes_form = StringField('ustedes conjugation', validators=[DataRequired()])
+
+
+class TypeForm(Form):
+    verb = StringField('verb', validators=[DataRequired()])
+    type = SelectField('form', choices=['ar verbs', 'er verbs', 'ir verbs', 'o to ue', 'e to i', 'e to ie',
+                                        'irregular'])
+
+
+class UnknownInfForm(FlaskForm):
+    unknown_verb = FieldList(FormField(TypeForm), min_entries=5)

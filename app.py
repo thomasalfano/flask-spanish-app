@@ -4,7 +4,7 @@ from wtforms import SelectField
 import random
 from db_setup import db, Verb, SetVerbs, SetTenses, Form, Subject, Practice_Set, Tense, IrregularConjugation
 from text_process import parse_text
-from forms import InfinitiveForm, CreateSetForm, IrregularForm
+from forms import InfinitiveForm, CreateSetForm, IrregularForm, UnknownInfForm, TypeForm
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'C2HWGVoMGfNTBsrYQg8EcMrdTimZfAb'
@@ -75,7 +75,7 @@ def setup():
     """
     # variables to be used in html templates
     form = CreateSetForm()
-    unknown_inf_form = None
+    unknown_inf_form = UnknownInfForm()
     tense_choices = Tense.query.all()
     form.tenses.choices = [str(i) for i in tense_choices]
     unknown_infinitives = []
@@ -97,7 +97,7 @@ def setup():
 
         # clear form entry
         form.title.data = ''
-        form.tenses.data = ''
+        form.tenses.data = None
         form.infinitives.data = ''
 
         # add new practice set title to practice_set table if not found in query
@@ -157,29 +157,27 @@ def setup():
                         set_tense = SetTenses(tense=query_tense, practice_set=query_set)
                         db.session.add(set_tense)
                 db.session.commit()
-            dropdown_dict = {}
-            forms = Form.query.all()
-            for inf in unknown_infinitives:
-                dropdown_dict[inf] = SelectField(forms)
-            unknown_inf_form = BaseForm(dropdown_dict)
-        return render_template('setup.html', exists=session.get('exists'),
-                               unknown_infinitives=unknown_infinitives,
-                               forms=Form.query.all(),
-                               form=CreateSetForm(),
-                               unknown_inf_form=unknown_inf_form)
 
-    if request.method == 'POST':
+            if unknown_infinitives:
+                if request.method == 'POST':
+                    print(unknown_inf_form.data)
 
-        return render_template('setup.html', exists=session.get('exists'),
-                               unknown_infinitives=unknown_infinitives,
-                               forms=Form.query.all(),
-                               form=CreateSetForm(),
-                               confirm_form=confirm_form)
+                    return render_template('setup.html', exists=session.get('exists'),
+                                           unknown_infinitives=unknown_infinitives,
+                                           forms=Form.query.all(),
+                                           form=form,
+                                           unknown_inf_form=unknown_inf_form)
 
+                return render_template('setup.html', exists=session.get('exists'),
+                                       unknown_infinitives=unknown_infinitives,
+                                       forms=Form.query.all(),
+                                       form=form,
+                                       unknown_inf_form=unknown_inf_form)
+            return redirect(url_for('practice_select'))
     else:
         return render_template('setup.html', form=form, exists=session.get('exists'),
                                unknown_infinitives=unknown_infinitives,
-                               forms=Form.query.all())
+                               forms=Form.query.all(), unknown_inf_form=unknown_inf_form)
 
 
 # route for selecting which 'practice set' to be used
@@ -202,13 +200,40 @@ def practice(active_set):
     :return: displays random prompts using verbs, subjects, and tenses associated with the active_set.
     """
 
-    session['set'] = active_set
-    query_set = db.session.query(Practice_Set).filter_by(label=active_set).first()
-    available_infinitives = db.session.query(SetVerbs).filter_by(set_id=query_set.id).all()
-    available_tenses = db.session.query(SetTenses).filter_by(set_id=query_set.id).all()
+    # check if the session's set has changed/exists
+    # if changed/does not exist, do all the database querying
+    if session.get('set') != active_set:
+        session['set'] = active_set
+        query_set = db.session.query(Practice_Set).filter_by(label=session.get('set')).first()
+        session['set_id'] = query_set.id
+        set_id = session.get('set_id')
+
+        infin_query = db.session.query(SetVerbs).filter_by(set_id=set_id).all()
+        session['infinitives_list'] = [infin.verb.infinitive for infin in infin_query]
+        session['infinitive_forms_list'] = [infin.verb.form_id for infin in infin_query]
+        session['infinitive_ids_list'] = [infin.verb.id for infin in infin_query]
+        infinitives_list = session.get('infinitives_list')
+        infinitive_forms = session.get('infinitive_forms_list')
+        infinitive_ids = session.get('infinitive_ids_list')
+
+        query_tenses = db.session.query(SetTenses).filter_by(set_id=set_id).all()
+        session['tense_list'] = [tense.tense.tense for tense in query_tenses]
+        available_tenses = session.get('tense_list')
+
+        subjects = Subject.query.all()
+        session['subj_list'] = [subj.subject for subj in subjects]
+        subjects = session.get('subj_list')
+
+    # if the sessions set has not changed, keep using the same lists
+    else:
+        available_tenses = session.get('tense_list')
+        infinitives_list = session.get('infinitives_list')
+        infinitive_forms = session.get('infinitive_forms_list')
+        infinitive_ids = session.get('infinitive_ids_list')
+        subjects = session.get('subj_list')
+
     session['correct'] = False
     session['incorrect'] = False
-    subjects = Subject.query.all()
 
     if request.method == 'POST':
         session['user_answer'] = request.form.get('answer')
@@ -231,20 +256,25 @@ def practice(active_set):
     else:
         # randomly select from infin, subj, and tense lists
         # to be used in view function for prompt
-        rand_infin = random.choice(available_infinitives)
-        rand_subj = random.choice(subjects)
-        rand_tense = random.choice(available_tenses)
+        target_infin = random.choice(infinitives_list)
+        idx = infinitives_list.index(target_infin)
+        target_form_id = infinitive_forms[idx]
+        target_infin_id = infinitive_ids[idx]
+        target_subj = random.choice(subjects)
+        target_tense = random.choice(available_tenses)
 
-        session['infinitive'] = rand_infin.verb.infinitive
-        session['subj'] = rand_subj.subject
-        session['tense'] = rand_tense.tense.tense
+        session['infinitive'] = target_infin
+        session['subj'] = target_subj
+        session['tense'] = target_tense
         infinitive = session.get('infinitive')
         subj = session.get('subj')
         irr_form = Form.query.filter_by(form='irregular').first()
         tense = session.get('tense')
 
-        # conjugate verb through function if function not irregular
-        if rand_infin.verb.form_id != irr_form.id:
+        # conjugate verb through computation if function not irregular
+        # check ending of verb to get correct conjugation
+        # then match the subject prompt to the correct ending
+        if target_form_id != irr_form.id:
             if infinitive.endswith('ar'):
                 match subj:
                     case 'yo':
@@ -267,6 +297,7 @@ def practice(active_set):
                         session['correct_answer'] = infinitive[:-2] + 'an'
                     case 'ustedes':
                         session['correct_answer'] = infinitive[:-2] + 'an'
+
             if infinitive.endswith('er'):
                 match subj:
                     case 'yo':
@@ -289,6 +320,7 @@ def practice(active_set):
                         session['correct_answer'] = infinitive[:-2] + 'en'
                     case 'ustedes':
                         session['correct_answer'] = infinitive[:-2] + 'en'
+
             if infinitive.endswith('ir'):
                 match subj:
                     case 'yo':
@@ -315,27 +347,28 @@ def practice(active_set):
         # use db lookup for conjugation
         else:
 
-            query_irr = IrregularConjugation.query.filter_by(infin_id=rand_infin.verb.id).first()
-            if session.get('subj') == 'yo':
-                session['correct_answer'] = query_irr.yo
-            elif session.get('subj') == 'tu':
-                session['correct_answer'] = query_irr.tu
-            elif session.get('subj') == 'el':
-                session['correct_answer'] = query_irr.el
-            elif session.get('subj') == 'ella':
-                session['correct_answer'] = query_irr.ella
-            elif session.get('subj') == 'usted':
-                session['correct_answer'] = query_irr.usted
-            elif session.get('subj') == 'nosotros':
-                session['correct_answer'] = query_irr.nosotros
-            elif session.get('subj') == 'nosotras':
-                session['correct_answer'] = query_irr.nosotras
-            elif session.get('subj') == 'ellos':
-                session['correct_answer'] = query_irr.ellos
-            elif session.get('subj') == 'ellas':
-                session['correct_answer'] = query_irr.ellas
-            elif session.get('subj') == 'ustedes':
-                session['correct_answer'] = query_irr.ustedes
+            query_irr = IrregularConjugation.query.filter_by(infin_id=target_infin_id).first()
+            match subj:
+                case 'yo':
+                    session['correct_answer'] = query_irr.yo
+                case 'tu':
+                    session['correct_answer'] = query_irr.tu
+                case 'el':
+                    session['correct_answer'] = query_irr.el
+                case 'ella':
+                    session['correct_answer'] = query_irr.ella
+                case 'usted':
+                    session['correct_answer'] = query_irr.usted
+                case 'nosotros':
+                    session['correct_answer'] = query_irr.nosotros
+                case 'nosotras':
+                    session['correct_answer'] = query_irr.nosotras
+                case 'ellos':
+                    session['correct_answer'] = query_irr.ellos
+                case 'ellas':
+                    session['correct_answer'] = query_irr.ellas
+                case 'ustedes':
+                    session['correct_answer'] = query_irr.ustedes
 
         return render_template('practice_view.html', title=active_set,
                                correct_answer=session.get('correct_answer'),
