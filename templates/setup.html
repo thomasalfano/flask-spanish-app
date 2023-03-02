@@ -49,7 +49,7 @@
             {% endif %}
 
 
-            <input type="submit">
+            {{form.submit1}}
 
         </form>
     </div>
@@ -76,8 +76,10 @@
         {#        {% for field in unknown_inf_form %}#}
         <form action="" method="post" class="popover">
             {{ unknown_inf_form.csrf_token }}
-            {{ unknown_inf_form.unknown_verb }}
-            <input type="submit">
+            {% for nested in unknown_inf_form.unknown_verb %}
+                {{ nested }}
+            {% endfor %}
+            {{ unknown_inf_form.submit2 }}
         </form>
 
         {#        {% endfor %}#}

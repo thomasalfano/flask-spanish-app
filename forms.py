@@ -1,5 +1,6 @@
 from flask_wtf import FlaskForm, Form
-from wtforms import StringField, TextAreaField, widgets, SelectMultipleField, SelectField, FieldList, FormField
+from wtforms import StringField, TextAreaField, widgets, SelectMultipleField, SelectField, FieldList, FormField,\
+    SubmitField
 from wtforms.validators import DataRequired, InputRequired
 
 
@@ -35,6 +36,7 @@ class CreateSetForm(FlaskForm):
     tenses = MultiCheckBox('Tenses', choices=[])
     verb_type = MultiCheckBox('Type', choices=[])
     infinitives = TextAreaField('Infinitives')
+    submit1 = SubmitField('submit')
 
 
 class IrregularForm(FlaskForm):
@@ -63,4 +65,8 @@ class TypeForm(Form):
 
 
 class UnknownInfForm(FlaskForm):
-    unknown_verb = FieldList(FormField(TypeForm), min_entries=5)
+    # def __init__(self, num_forms):
+    #     self.num_forms = num_forms
+
+    unknown_verb = FieldList(FormField(TypeForm))
+    submit2 = SubmitField('submit')

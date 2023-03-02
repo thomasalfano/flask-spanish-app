@@ -75,7 +75,6 @@ def setup():
     """
     # variables to be used in html templates
     form = CreateSetForm()
-    unknown_inf_form = UnknownInfForm()
     tense_choices = Tense.query.all()
     form.tenses.choices = [str(i) for i in tense_choices]
     unknown_infinitives = []
@@ -159,8 +158,17 @@ def setup():
                 db.session.commit()
 
             if unknown_infinitives:
+                unknown_inf_form = UnknownInfForm()
+
+                for unknown_inf in unknown_infinitives:
+                    type_form = TypeForm()
+                    type_form.verb = unknown_inf
+
+                    unknown_inf_form.unknown_verb.append_entry(type_form)
+
                 if request.method == 'POST':
-                    print(unknown_inf_form.data)
+                    data = unknown_inf_form.data
+                    print(data)
 
                     return render_template('setup.html', exists=session.get('exists'),
                                            unknown_infinitives=unknown_infinitives,
@@ -177,7 +185,7 @@ def setup():
     else:
         return render_template('setup.html', form=form, exists=session.get('exists'),
                                unknown_infinitives=unknown_infinitives,
-                               forms=Form.query.all(), unknown_inf_form=unknown_inf_form)
+                               forms=Form.query.all())
 
 
 # route for selecting which 'practice set' to be used
