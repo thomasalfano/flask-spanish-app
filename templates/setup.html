@@ -49,32 +49,16 @@
             {% endif %}
 
 
-            {{form.submit1}}
+            {{ form.submit1 }}
 
         </form>
     </div>
+
     {% if exists == False %}
-        {#        <form action="" method="POST" id="confirm">#}
-        {#            {{ confirm_form.csrf_token }}#}
-        {#            {% for infinitive in unknown_infinitives %}#}
-        {#                {{ infinitive }}#}
-        {#                {{ confirm_form.form }}#}
-        {##}
-        {#            {% endfor %}#}
-        {##}
-        {#            {% if confirm_form.form.errors %}#}
-        {#                <ul>#}
-        {#                    {% for error in confirm_form.form.errors %}#}
-        {#                        <li>{{ error }}</li>#}
-        {#                    {% endfor %}#}
-        {#                </ul>#}
-        {#            {% endif %}#}
 
-
-        {#            <input type="submit">#}
-        {#        </form>#}
-        {#        {% for field in unknown_inf_form %}#}
         <form action="" method="post" class="popover">
+            <h2>You tried adding unknown infinitives</h2>
+            <p>provide the types for the following infinitives:</p>
             {{ unknown_inf_form.csrf_token }}
             {% for nested in unknown_inf_form.unknown_verb %}
                 {{ nested }}
@@ -82,7 +66,5 @@
             {{ unknown_inf_form.submit2 }}
         </form>
 
-        {#        {% endfor %}#}
-        {#        <input type="submit">#}
     {% endif %}
 {% endblock %}
