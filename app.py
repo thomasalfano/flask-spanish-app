@@ -1,6 +1,4 @@
 from flask import Flask, render_template, redirect, url_for, request, session, flash
-from wtforms.form import BaseForm
-from wtforms import SelectField
 import random
 from db_setup import db, Verb, SetVerbs, SetTenses, Form, Subject, Practice_Set, Tense, IrregularConjugation
 from text_process import parse_text
@@ -73,10 +71,12 @@ def setup():
 
     :return: Displays form used to create practice sets, display pop-up window for unrecognized verbs.
     """
+
     # variables to be used in html templates
-    form = CreateSetForm()
+    set_form = CreateSetForm()
+    unknown_inf_form = UnknownInfForm()
     tense_choices = Tense.query.all()
-    form.tenses.choices = [str(i) for i in tense_choices]
+    set_form.tenses.choices = [str(i) for i in tense_choices]
     unknown_infinitives = []
     session['exists'] = True
 
@@ -84,23 +84,30 @@ def setup():
     ar_verbs = Form.query.filter_by(form='ar verbs').first()
     er_verbs = Form.query.filter_by(form='er verbs').first()
     ir_verbs = Form.query.filter_by(form='ir verbs').first()
+    irregular_verbs = Form.query.filter_by(form='irregular').first()
+    o_to_ue = Form.query.filter_by(form='o to ue').first()
+    e_to_i = Form.query.filter_by(form='e to i').first()
+    e_to_ie = Form.query.filter_by(form='e to ie').first()
 
     # fill form choices
-    form.verb_type.choices = [ar_verbs.form, ir_verbs.form, er_verbs.form]
+    set_form.verb_type.choices = [ar_verbs.form, ir_verbs.form, er_verbs.form, irregular_verbs.form,
+                                  o_to_ue.form, e_to_ie.form, e_to_i.form]
 
-    if form.validate_on_submit():
-        set_title = form.title.data
-        tenses = form.tenses.data
-        preset_list = form.verb_type.data
-        infinitives = parse_text(form.infinitives.data)
+    # check if the incoming POST request comes from the setup form
+    if request.method == 'POST' and set_form.submit1.data is True:
+        set_title = set_form.title.data
+        session['title'] = set_title
+        tenses = set_form.tenses.data
+        preset_list = set_form.verb_type.data
+        infinitives = parse_text(set_form.infinitives.data)
 
         # clear form entry
-        form.title.data = ''
-        form.tenses.data = None
-        form.infinitives.data = ''
+        set_form.title.data = ''
+        set_form.tenses.data = None
+        set_form.infinitives.data = ''
 
         # add new practice set title to practice_set table if not found in query
-        existing_set = Practice_Set.query.filter_by(label=form.title.data).first()
+        existing_set = Practice_Set.query.filter_by(label=set_form.title.data).first()
         if not existing_set:
             new_set = Practice_Set(label=set_title)
             db.session.add(new_set)
@@ -158,34 +165,50 @@ def setup():
                 db.session.commit()
 
             if unknown_infinitives:
-                unknown_inf_form = UnknownInfForm()
 
                 for unknown_inf in unknown_infinitives:
                     type_form = TypeForm()
                     type_form.verb = unknown_inf
 
                     unknown_inf_form.unknown_verb.append_entry(type_form)
+            else:
+                return redirect(url_for('practice_select'))
 
-                if request.method == 'POST':
-                    data = unknown_inf_form.data
-                    print(data)
+    # check if the incoming POST request is coming from the unknown_inf_form
+    if request.method == 'POST' and unknown_inf_form.submit2.data is True:
+        data = unknown_inf_form.unknown_verb.data
 
-                    return render_template('setup.html', exists=session.get('exists'),
-                                           unknown_infinitives=unknown_infinitives,
-                                           forms=Form.query.all(),
-                                           form=form,
-                                           unknown_inf_form=unknown_inf_form)
+        # for each verb in the form, add that verb and its type to the db
+        for idx, verb in enumerate(data):
+            verb = data[idx]['verb']
+            v_type = data[idx]['type']
+            verb_form = db.session.query(Form).filter_by(form=v_type).first()
+            new_verb = Verb(infinitive=verb, form=verb_form)
+            db.session.add(new_verb)
+        db.session.commit()
 
-                return render_template('setup.html', exists=session.get('exists'),
-                                       unknown_infinitives=unknown_infinitives,
-                                       forms=Form.query.all(),
-                                       form=form,
-                                       unknown_inf_form=unknown_inf_form)
-            return redirect(url_for('practice_select'))
-    else:
-        return render_template('setup.html', form=form, exists=session.get('exists'),
-                               unknown_infinitives=unknown_infinitives,
-                               forms=Form.query.all())
+        # now that this verb exists in the db, we will add all of them to the db with the associated practice set
+        for idx, verb in enumerate(data):
+            infinitive = data[idx]['verb']
+            set_title = session.get('title')
+            query_infin = Verb.query.filter_by(infinitive=infinitive).first()
+            query_set = Practice_Set.query.filter_by(label=set_title).first()
+            set_infin = SetVerbs(verb=query_infin, practice_set=query_set)
+            db.session.add(set_infin)
+        db.session.commit()
+
+        return redirect(url_for('practice_select'))
+
+    return render_template('setup.html', exists=session.get('exists'),
+                           unknown_infinitives=unknown_infinitives,
+                           forms=Form.query.all(),
+                           form=set_form,
+                           unknown_inf_form=unknown_inf_form)
+
+    # else:
+    # return render_template('setup.html', form=form, exists=session.get('exists'),
+    #                        unknown_infinitives=unknown_infinitives,
+    #                        forms=Form.query.all())
 
 
 # route for selecting which 'practice set' to be used
@@ -332,25 +355,25 @@ def practice(active_set):
             if infinitive.endswith('ir'):
                 match subj:
                     case 'yo':
-                        session['correct_answer'] = session.get('infin')[:-2] + 'o'
+                        session['correct_answer'] = infinitive[:-2] + 'o'
                     case 'tu':
-                        session['correct_answer'] = session.get('infin')[:-2] + 'es'
+                        session['correct_answer'] = infinitive[:-2] + 'es'
                     case 'el':
-                        session['correct_answer'] = session.get('infin')[:-2] + 'e'
+                        session['correct_answer'] = infinitive[:-2] + 'e'
                     case 'ella':
-                        session['correct_answer'] = session.get('infin')[:-2] + 'e'
+                        session['correct_answer'] = infinitive[:-2] + 'e'
                     case 'usted':
-                        session['correct_answer'] = session.get('infin')[:-2] + 'e'
+                        session['correct_answer'] = infinitive[:-2] + 'e'
                     case 'nosotros':
-                        session['correct_answer'] = session.get('infin')[:-2] + 'imos'
+                        session['correct_answer'] = infinitive[:-2] + 'imos'
                     case 'vosotros':
-                        session['correct_answer'] = session.get('infin')[:-2] + 'is'
+                        session['correct_answer'] = infinitive[:-2] + 'is'
                     case 'ellos':
-                        session['correct_answer'] = session.get('infin')[:-2] + 'en'
+                        session['correct_answer'] = infinitive[:-2] + 'en'
                     case 'ellas':
-                        session['correct_answer'] = session.get('infin')[:-2] + 'en'
+                        session['correct_answer'] = infinitive[:-2] + 'en'
                     case 'ustedes':
-                        session['correct_answer'] = session.get('infin')[:-2] + 'en'
+                        session['correct_answer'] = infinitive[:-2] + 'en'
 
         # use db lookup for conjugation
         else:
@@ -403,16 +426,38 @@ def add_irregular():
     if form.validate_on_submit():
         infin = Verb.query.filter_by(infinitive=form.ir_infin.data).first()
 
-        new_conjugation = IrregularConjugation(infin_id=infin.id, yo=form.yo_form.data, tu=form.tu_form.data,
-                                               el=form.el_form.data, ella=form.ella_form.data,
-                                               usted=form.usted_form.data,
-                                               nosotros=form.nosotros_form.data,
-                                               nosotras=form.nosotras_form.data,
-                                               ellos=form.ellos_form.data,
-                                               ellas=form.ellas_form.data, ustedes=form.ustedes_form.data
-                                               )
-        db.session.add(new_conjugation)
-        db.session.commit()
+        if infin is None:
+            new_verb = form.ir_infin.data
+            new_form = Form.query.filter_by(form='irregular').first()
+            add_verb = Verb(infinitive=new_verb, form=new_form)
+            db.session.add(add_verb)
+            db.session.commit()
+
+            infin = Verb.query.filter_by(infinitive=form.ir_infin.data).first()
+
+            new_conjugation = IrregularConjugation(infin_id=infin.id, yo=form.yo_form.data, tu=form.tu_form.data,
+                                                   el=form.el_form.data, ella=form.ella_form.data,
+                                                   usted=form.usted_form.data,
+                                                   nosotros=form.nosotros_form.data,
+                                                   nosotras=form.nosotras_form.data,
+                                                   ellos=form.ellos_form.data,
+                                                   ellas=form.ellas_form.data, ustedes=form.ustedes_form.data
+                                                   )
+            db.session.add(new_conjugation)
+            db.session.commit()
+
+        else:
+
+            new_conjugation = IrregularConjugation(infin_id=infin.id, yo=form.yo_form.data, tu=form.tu_form.data,
+                                                   el=form.el_form.data, ella=form.ella_form.data,
+                                                   usted=form.usted_form.data,
+                                                   nosotros=form.nosotros_form.data,
+                                                   nosotras=form.nosotras_form.data,
+                                                   ellos=form.ellos_form.data,
+                                                   ellas=form.ellas_form.data, ustedes=form.ustedes_form.data
+                                                   )
+            db.session.add(new_conjugation)
+            db.session.commit()
         return redirect(url_for('add_irregular'))
     return render_template('add_irregular.html', form=form, infins=infins)
 

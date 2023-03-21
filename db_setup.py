@@ -145,7 +145,7 @@ class Practice_Set(db.Model):
         return f'{self.label}'
 
 
-def pop_db():
+def insert():
     """ Populates database's static tables with data."""
     tenses = ['past', 'present', 'future']
     forms = ['ar verbs', 'er verbs', 'ir verbs', 'o to ue', 'e to i', 'e to ie', 'irregular']
