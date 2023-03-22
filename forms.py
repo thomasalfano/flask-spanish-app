@@ -22,6 +22,7 @@ class InfinitiveForm(FlaskForm):
     """
     infinitive = TextAreaField('Infinitive', validators=[DataRequired()])
     form = SelectField('Form', choices=[], validators=[InputRequired()])
+    stem_changer = MultiCheckBox('Stem Change', choices=['o to ue', 'e to i', 'e to ie'])
 
 
 class CreateSetForm(FlaskForm):
@@ -60,8 +61,7 @@ class IrregularForm(FlaskForm):
 
 class TypeForm(Form):
     verb = StringField('verb', validators=[DataRequired()])
-    type = SelectField('form', choices=['ar verbs', 'er verbs', 'ir verbs', 'o to ue', 'e to i', 'e to ie',
-                                        'irregular'])
+    type = SelectField('form', choices=['ar verbs', 'er verbs', 'ir verbs'])
 
 
 class UnknownInfForm(FlaskForm):

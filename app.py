@@ -1,7 +1,8 @@
 from flask import Flask, render_template, redirect, url_for, request, session, flash
 import random
-from db_setup import db, Verb, SetVerbs, SetTenses, Form, Subject, Practice_Set, Tense, IrregularConjugation
+from db_setup import db, Verb, SetVerbs, SetTenses, Form, Subject, Practice_Set, Tense, IrregularConjugation, Stems
 from text_process import parse_text
+from flask_migrate import Migrate
 from forms import InfinitiveForm, CreateSetForm, IrregularForm, UnknownInfForm, TypeForm
 
 app = Flask(__name__)
@@ -10,6 +11,8 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres::@localhost/flask
 
 # initialize db with app instance
 db.init_app(app)
+
+migrate = Migrate(app, db)
 
 
 @app.route('/')
@@ -28,14 +31,19 @@ def verb_view():
     """
     form = InfinitiveForm()
     infinitives_list = Verb.query.all()
-    verb_forms = Form.query.all()
+    verb_forms = ['ar verbs', 'er verbs', 'ir verbs', 'irregular']
     form.form.choices = verb_forms
 
     # if form validates, query the verb table using form data
     # add new entry if verb does not exist
     if form.validate_on_submit():
         infin_list = parse_text(form.infinitive.data)
-        print(infin_list)
+
+        if form.stem_changer.data:
+            stem_changer = form.stem_changer.data[0]
+            session['stem'] = stem_changer
+
+        stem_changer = session.get('stem')
 
         # add everything from text-field input
         for verb in infin_list:
@@ -44,10 +52,19 @@ def verb_view():
             # if not an existing verb in db
             # add new verb to db using form data
             if not existing_verb:
-                form_infin = verb
-                verb_form = db.session.query(Form).filter_by(form=form.form.data).first()
-                new_verb = Verb(infinitive=form_infin, form=verb_form)
-                db.session.add(new_verb)
+                if stem_changer:
+                    form_infin = verb
+                    verb_form = db.session.query(Form).filter_by(form=form.form.data).first()
+                    stem = db.session.query(Stems).filter_by(stem=stem_changer).first()
+                    new_verb = Verb(infinitive=form_infin, form=verb_form, stem=stem)
+                    db.session.add(new_verb)
+
+                else:
+                    form_infin = verb
+                    verb_form = db.session.query(Form).filter_by(form=form.form.data).first()
+                    new_verb = Verb(infinitive=form_infin, form=verb_form)
+                    db.session.add(new_verb)
+
             else:
                 flash('This infinitive exists already', category='message')
                 return render_template('verb_view.html', infinitives_list=infinitives_list, form=form)
@@ -81,17 +98,28 @@ def setup():
     session['exists'] = True
 
     # query the ar verbs for form checkbox
-    ar_verbs = Form.query.filter_by(form='ar verbs').first()
-    er_verbs = Form.query.filter_by(form='er verbs').first()
-    ir_verbs = Form.query.filter_by(form='ir verbs').first()
-    irregular_verbs = Form.query.filter_by(form='irregular').first()
-    o_to_ue = Form.query.filter_by(form='o to ue').first()
-    e_to_i = Form.query.filter_by(form='e to i').first()
-    e_to_ie = Form.query.filter_by(form='e to ie').first()
+    if session.get('ar verbs') is None:
+        query_ar = Form.query.filter_by(form='ar verbs').first()
+        session['ar verbs'] = query_ar.form
+        ar_verbs = session.get('ar verbs')
+        query_er = Form.query.filter_by(form='er verbs').first()
+        session['er verbs'] = query_er.form
+        er_verbs = session.get('er verbs')
+        query_ir = Form.query.filter_by(form='ir verbs').first()
+        session['ir verbs'] = query_ir.form
+        ir_verbs = session.get('ir verbs')
+        query_irreg = Form.query.filter_by(form='irregular').first()
+        session['irregular verbs'] = query_irreg.form
+        irregular_verbs = session.get('irregular verbs')
+
+    else:
+        ar_verbs = session.get('ar verbs')
+        er_verbs = session.get('er verbs')
+        ir_verbs = session.get('ir verbs')
+        irregular_verbs = session.get('irregular verbs')
 
     # fill form choices
-    set_form.verb_type.choices = [ar_verbs.form, ir_verbs.form, er_verbs.form, irregular_verbs.form,
-                                  o_to_ue.form, e_to_ie.form, e_to_i.form]
+    set_form.verb_type.choices = [ar_verbs, ir_verbs, er_verbs, irregular_verbs, 'o to ue', 'e to i', 'e to ie']
 
     # check if the incoming POST request comes from the setup form
     if request.method == 'POST' and set_form.submit1.data is True:
@@ -150,19 +178,63 @@ def setup():
             if preset_list:
                 # for all boxes checked, add verbs with that corresponding type
                 for form in preset_list:
-                    query_form = Form.query.filter_by(form=form).first()
-                    query_verbs = Verb.query.filter_by(form=query_form).all()
-                    for verb in query_verbs:
-                        set_infin = SetVerbs(verb=verb, practice_set=query_set)
-                        db.session.add(set_infin)
-                    # repeat above step for tenses
-                    for i in tenses:
-                        # query the tense
-                        query_tense = Tense.query.filter_by(tense=i).first()
+                    if form == 'e to i':
+                        print()
+                        query_verbs = Verb.query.filter_by(stem_id=3).all()
 
-                        set_tense = SetTenses(tense=query_tense, practice_set=query_set)
-                        db.session.add(set_tense)
-                db.session.commit()
+                        # add each queried verb to the db session, will be committed later on
+                        for verb in query_verbs:
+                            set_infin = SetVerbs(verb=verb, practice_set=query_set)
+                            db.session.add(set_infin)
+                        # repeat above step for tenses
+                        for i in tenses:
+                            # query the tense
+                            query_tense = Tense.query.filter_by(tense=i).first()
+
+                            set_tense = SetTenses(tense=query_tense, practice_set=query_set)
+                            db.session.add(set_tense)
+
+                    elif form == 'e to ie':
+                        query_verbs = Verb.query.filter_by(stem_id=2).all()
+                        for verb in query_verbs:
+                            set_infin = SetVerbs(verb=verb, practice_set=query_set)
+                            db.session.add(set_infin)
+                        # repeat above step for tenses
+                        for i in tenses:
+                            # query the tense
+                            query_tense = Tense.query.filter_by(tense=i).first()
+
+                            set_tense = SetTenses(tense=query_tense, practice_set=query_set)
+                            db.session.add(set_tense)
+                    elif form == 'o to ue':
+                        query_verbs = Verb.query.filter_by(stem_id=1).all()
+                        for verb in query_verbs:
+                            set_infin = SetVerbs(verb=verb, practice_set=query_set)
+                            db.session.add(set_infin)
+                        # repeat above step for tenses
+                        for i in tenses:
+                            # query the tense
+                            query_tense = Tense.query.filter_by(tense=i).first()
+
+                            set_tense = SetTenses(tense=query_tense, practice_set=query_set)
+                            db.session.add(set_tense)
+
+                    else:
+
+                        query_form = Form.query.filter_by(form=form).first()
+                        query_verbs = Verb.query.filter_by(form=query_form).all()
+
+                        for verb in query_verbs:
+                            set_infin = SetVerbs(verb=verb, practice_set=query_set)
+                            db.session.add(set_infin)
+                        # repeat above step for tenses
+                        for i in tenses:
+                            # query the tense
+                            query_tense = Tense.query.filter_by(tense=i).first()
+
+                            set_tense = SetTenses(tense=query_tense, practice_set=query_set)
+                            db.session.add(set_tense)
+                    db.session.commit()
 
             if unknown_infinitives:
 
@@ -263,17 +335,16 @@ def practice(active_set):
         infinitive_ids = session.get('infinitive_ids_list')
         subjects = session.get('subj_list')
 
-    session['correct'] = False
     session['incorrect'] = False
 
     if request.method == 'POST':
         session['user_answer'] = request.form.get('answer')
 
         if session.get('user_answer') == session.get('correct_answer'):
-            session['correct'] = True
             session['incorrect'] = False
+            flash('correct!', category='message')
+            return redirect(url_for('practice', active_set=active_set))
         else:
-            session['correct'] = False
             session['incorrect'] = True
 
         return render_template('practice_view.html', title=active_set,
@@ -281,7 +352,6 @@ def practice(active_set):
                                infinitive=session.get('infinitive'),
                                subject=session.get('subj'),
                                tense=session.get('tense'),
-                               correct=session.get('correct'),
                                incorrect=session.get('incorrect'))
 
     else:

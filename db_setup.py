@@ -69,12 +69,28 @@ class Verb(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     infinitive = db.Column(db.String(64), unique=True)
     form_id = db.Column(db.Integer, db.ForeignKey('forms.id'))
+    stem_id = db.Column(db.Integer, db.ForeignKey('stems.id'), nullable=True, default=None)
 
     # relationship
     practice_sets = db.relationship('SetVerbs', back_populates='verb')
 
     def __repr__(self):
         return f"infinitive:'{self.infinitive}', 'form_id:{self.form_id}'"
+
+
+class Stems(db.Model):
+    """
+    Database model that stores the three different types of stem changers
+
+    Has a one-to-many relationship with the Verbs table
+    """
+
+    __tablename__ = 'stems'
+    id = db.Column(db.Integer, primary_key=True)
+    stem = db.Column(db.String(64), unique=True)
+
+    # relationship
+    infinitives = db.relationship('Verb', backref='stem')
 
 
 # form [id, label] ("static")
