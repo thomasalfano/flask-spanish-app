@@ -342,8 +342,8 @@ def practice(active_set):
         session['tense_list'] = [tense.tense.tense for tense in query_tenses]
         available_tenses = session.get('tense_list')
 
-        subjects = Subject.query.all()
-        session['subj_list'] = [subj.subject for subj in subjects]
+        subject_query = db.session.query(SetSubjects).filter_by(set_id=set_id).all()
+        session['subj_list'] = [subj.subject.subject for subj in subject_query]
         subjects = session.get('subj_list')
 
     # if the sessions set has not changed, keep using the same lists
