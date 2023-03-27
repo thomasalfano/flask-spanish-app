@@ -57,6 +57,22 @@ class SetTenses(db.Model):
     practice_set = db.relationship('Practice_Set', back_populates='tenses')
 
 
+class SetSubjects(db.Model):
+    """
+    Database model that represents the association table between the subjects table and the practice set table.
+
+    ForeignKey referencing the ids of the practice_set and subjects table
+    """
+    __tablename__ = 'set_subjects'
+    id = db.Column(db.Integer, primary_key=True)
+    set_id = db.Column(db.Integer, db.ForeignKey('practice_set.id'))
+    subject_id = db.Column(db.Integer, db.ForeignKey('subjects.id'))
+
+    # relationships
+    subject = db.relationship('Subject', back_populates='practice_sets')
+    practice_set = db.relationship('Practice_Set', back_populates='subjects')
+
+
 # verb table (id, infin, form(fk))
 class Verb(db.Model):
     """
@@ -118,9 +134,24 @@ class Subject(db.Model):
     __tablename__ = 'subjects'
     id = db.Column(db.Integer, primary_key=True)
     subject = db.Column(db.String(64), unique=True)
+    number_id = db.Column(db.Integer, db.ForeignKey('pronoun_number.id'))
 
     def __repr__(self):
         return f'{self.subject}'
+
+    # relationship
+    practice_sets = db.relationship('SetSubjects', back_populates='subject')
+    number = db.relationship('PronounNumber', back_populates='subjects')
+
+
+class PronounNumber(db.Model):
+    """Database model for the different type of pronouns, singular, plural, and formal"""
+    __tablename__ = 'pronoun_number'
+    id = db.Column(db.Integer, primary_key=True)
+    number = db.Column(db.String(64), unique=True)
+
+    # relationship
+    subjects = db.relationship('Subject', back_populates='number')
 
 
 # tense [id, label]
@@ -156,6 +187,7 @@ class Practice_Set(db.Model):
     # relationship for table
     verbs = db.relationship('SetVerbs', back_populates='practice_set')
     tenses = db.relationship('SetTenses', back_populates='practice_set')
+    subjects = db.relationship('SetSubjects', back_populates='practice_set')
 
     def __repr__(self):
         return f'{self.label}'

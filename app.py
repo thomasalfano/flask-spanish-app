@@ -1,6 +1,7 @@
 from flask import Flask, render_template, redirect, url_for, request, session, flash
 import random
-from db_setup import db, Verb, SetVerbs, SetTenses, Form, Subject, Practice_Set, Tense, IrregularConjugation, Stems
+from db_setup import db, Verb, SetVerbs, SetTenses, Form, Subject, Practice_Set, Tense, IrregularConjugation, Stems, \
+    SetSubjects
 from text_process import parse_text
 from flask_migrate import Migrate
 from forms import InfinitiveForm, CreateSetForm, IrregularForm, UnknownInfForm, TypeForm
@@ -128,6 +129,7 @@ def setup():
         tenses = set_form.tenses.data
         preset_list = set_form.verb_type.data
         infinitives = parse_text(set_form.infinitives.data)
+        subjects = set_form.subject.data
 
         # clear form entry
         set_form.title.data = ''
@@ -143,6 +145,28 @@ def setup():
 
             # query the addition that was just made
             query_set = db.session.query(Practice_Set).filter_by(label=set_title).first()
+
+            # check the form for subject data
+            if subjects:
+                for subj in subjects:
+                    if subj == 'plural':
+                        # query the subject type
+                        query_subjects = Subject.query.filter_by(number_id=2).all()
+                        for subj_id in query_subjects:
+                            set_subject = SetSubjects(practice_set=query_set, subject=subj_id)
+                            db.session.add(set_subject)
+
+                    if subj == 'singular':
+                        query_subjects = Subject.query.filter_by(number_id=1).all()
+                        for subj_id in query_subjects:
+                            set_subject = SetSubjects(practice_set=query_set, subject=subj_id)
+                            db.session.add(set_subject)
+
+                    if subj == 'formal':
+                        query_subjects = Subject.query.filter_by(number_id=3).all()
+                        for subj_id in query_subjects:
+                            set_subject = SetSubjects(practice_set=query_set, subject=subj_id)
+                            db.session.add(set_subject)
 
             # checks for form input from the custom infinitives box
             if infinitives:
@@ -276,11 +300,6 @@ def setup():
                            forms=Form.query.all(),
                            form=set_form,
                            unknown_inf_form=unknown_inf_form)
-
-    # else:
-    # return render_template('setup.html', form=form, exists=session.get('exists'),
-    #                        unknown_infinitives=unknown_infinitives,
-    #                        forms=Form.query.all())
 
 
 # route for selecting which 'practice set' to be used

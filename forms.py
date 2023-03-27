@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm, Form
-from wtforms import StringField, TextAreaField, widgets, SelectMultipleField, SelectField, FieldList, FormField,\
+from wtforms import StringField, TextAreaField, widgets, SelectMultipleField, SelectField, FieldList, FormField, \
     SubmitField
 from wtforms.validators import DataRequired, InputRequired
 
@@ -34,6 +34,7 @@ class CreateSetForm(FlaskForm):
     TextAreaField- used for adding custom infinitives to be used in practice sets
     """
     title = StringField('Title', validators=[DataRequired()])
+    subject = MultiCheckBox('Subjects', choices=['singular', 'plural', 'formal'])
     tenses = MultiCheckBox('Tenses', choices=[])
     verb_type = MultiCheckBox('Type', choices=[])
     infinitives = TextAreaField('Infinitives')

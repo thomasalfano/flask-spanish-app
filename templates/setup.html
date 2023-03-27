@@ -18,6 +18,17 @@
                 </ul>
             {% endif %}
 
+            <h2>Select Subject Prompts:</h2>
+            <p>{{ form.subject(size=3) }}</p>
+
+            {% if form.subject.errors %}
+                <ul>
+                    {% for error in form.subject.errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+
             <h2>Select Tenses to include:</h2>
             <p>{{ form.tenses(size=5) }}</p>
 
