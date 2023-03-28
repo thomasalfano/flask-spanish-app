@@ -54,12 +54,14 @@
                     <tr>
                         <th>Infinitive</th>
                         <th>Form</th>
+                        <th>stem changer</th>
                     </tr>
                     {% for infinitive in infinitives_list %}
                         {% if infinitive.form.form == type %}
                             <tr>
                                 <td>{{ infinitive.infinitive }}</td>
                                 <td>{{ infinitive.form.form }}</td>
+                                <td>{{ infinitive.stem.stem }}</td>
                             </tr>
                         {% else %}
                         {% endif %}
