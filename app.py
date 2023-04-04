@@ -277,9 +277,20 @@ def setup():
         for idx, verb in enumerate(data):
             verb = data[idx]['verb']
             v_type = data[idx]['type']
-            verb_form = db.session.query(Form).filter_by(form=v_type).first()
-            new_verb = Verb(infinitive=verb, form=verb_form)
-            db.session.add(new_verb)
+            if data[idx]['stem_changer']:                       # check if form gave stem changer data
+                v_stem = data[idx]['stem_changer'][0]
+            else:
+                v_stem = None
+            if v_stem is None:
+                verb_form = db.session.query(Form).filter_by(form=v_type).first()
+                new_verb = Verb(infinitive=verb, form=verb_form)
+                db.session.add(new_verb)
+            else:
+                verb_form = db.session.query(Form).filter_by(form=v_type).first()
+                stem = db.session.query(Stems).filter_by(stem=v_stem).first()
+                new_verb = Verb(infinitive=verb, form=verb_form, stem=stem)
+                db.session.add(new_verb)
+
         db.session.commit()
 
         # now that this verb exists in the db, we will add all of them to the db with the associated practice set
