@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Conjugation Practice{% endblock %}</title>
+    <link rel="stylesheet" href="../static/styles.css">
+</head>
+{% block nav %}
+    <nav>
+        <ul>
+            <li><a href="{{ url_for('main.practice_select') }}">Start Practicing</a></li>
+            <li><a href="{{ url_for('main.verb_view') }}">Verb View</a></li>
+            <li><a href="{{ url_for('main.setup') }}">Practice Set Setup</a></li>
+            <li><a href="{{ url_for('main.add_irregular') }}">Add Irregular Verb Conjugations</a></li>
+
+        </ul>
+    </nav>
+{% endblock %}
+<body>
+{% block content %}
+
+{% endblock %}
+</body>
+</html>
