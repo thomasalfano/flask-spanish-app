@@ -15,10 +15,9 @@
 
     <h2>{{ correct_answer }}</h2>
 
-    {% if correct %}
-        <h2>Correct!</h2>
-        <h2><a class="correct" href="" methods="GET">continue</a></h2>
-    {% endif %}
+    {% for message in get_flashed_messages() %}
+        <h2>{{ message }}</h2>
+    {% endfor %}
 
     {% if incorrect %}
         <h2 class="incorrect">Try Again!</h2>

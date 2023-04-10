@@ -1,7 +1,9 @@
 from flask import Flask, render_template, redirect, url_for, request, session, flash
 import random
-from db_setup import db, Verb, SetVerbs, SetTenses, Form, Subject, Practice_Set, Tense, IrregularConjugation
+from db_setup import db, Verb, SetVerbs, SetTenses, Form, Subject, Practice_Set, Tense, IrregularConjugation, Stems, \
+    SetSubjects
 from text_process import parse_text
+from flask_migrate import Migrate
 from forms import InfinitiveForm, CreateSetForm, IrregularForm, UnknownInfForm, TypeForm
 
 app = Flask(__name__)
@@ -10,6 +12,8 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres::@localhost/flask
 
 # initialize db with app instance
 db.init_app(app)
+
+migrate = Migrate(app, db)
 
 
 # TODO rename Form class to something like VerbForm or VerbType (it's confusing and dangerous bc WTForms has a class named Form as its base)
@@ -34,19 +38,37 @@ def verb_view():
     """
     form = InfinitiveForm()
     infinitives_list = Verb.query.all()
-    verb_forms = Form.query.all()   # TODO: these two lines into one, get rid of verb_forms
+    verb_forms = ['ar verbs', 'er verbs', 'ir verbs', 'irregular']
     form.form.choices = verb_forms
 
     # add infinitives to the db that aren't already in it
 
     if form.validate_on_submit():
-        infin_list = parse_text(form.infinitive.data) # TODO clarify what infin_list looks like
+        infin_list = parse_text(form.infinitive.data)
+
+        if form.stem_changer.data:
+            stem_changer = form.stem_changer.data[0]
+        else:
+            stem_changer = None
 
         for verb in infin_list:
             existing_verb = Verb.query.filter_by(infinitive=verb).first()
 
             # add new verb to db using form data
             if not existing_verb:
+                if stem_changer:
+                    form_infin = verb
+                    verb_form = db.session.query(Form).filter_by(form=form.form.data).first()
+                    stem = db.session.query(Stems).filter_by(stem=stem_changer).first()
+                    new_verb = Verb(infinitive=form_infin, form=verb_form, stem=stem)
+                    db.session.add(new_verb)
+
+                else:
+                    form_infin = verb
+                    verb_form = db.session.query(Form).filter_by(form=form.form.data).first()
+                    new_verb = Verb(infinitive=form_infin, form=verb_form)
+                    db.session.add(new_verb)
+
                 form_infin = verb
                 verb_form = db.session.query(Form).filter_by(form=form.form.data).first()
                 new_verb = Verb(infinitive=form_infin, form=verb_form)
@@ -99,17 +121,28 @@ def setup():
     # existing verbs by type to populate form"
 
     # query the ar verbs for form checkbox
-    ar_verbs = Form.query.filter_by(form='ar verbs').first()
-    er_verbs = Form.query.filter_by(form='er verbs').first()
-    ir_verbs = Form.query.filter_by(form='ir verbs').first()
-    irregular_verbs = Form.query.filter_by(form='irregular').first()
-    o_to_ue = Form.query.filter_by(form='o to ue').first()
-    e_to_i = Form.query.filter_by(form='e to i').first()
-    e_to_ie = Form.query.filter_by(form='e to ie').first()
+    if session.get('ar verbs') is None:
+        query_ar = Form.query.filter_by(form='ar verbs').first()
+        session['ar verbs'] = query_ar.form
+        ar_verbs = session.get('ar verbs')
+        query_er = Form.query.filter_by(form='er verbs').first()
+        session['er verbs'] = query_er.form
+        er_verbs = session.get('er verbs')
+        query_ir = Form.query.filter_by(form='ir verbs').first()
+        session['ir verbs'] = query_ir.form
+        ir_verbs = session.get('ir verbs')
+        query_irreg = Form.query.filter_by(form='irregular').first()
+        session['irregular verbs'] = query_irreg.form
+        irregular_verbs = session.get('irregular verbs')
+
+    else:
+        ar_verbs = session.get('ar verbs')
+        er_verbs = session.get('er verbs')
+        ir_verbs = session.get('ir verbs')
+        irregular_verbs = session.get('irregular verbs')
 
     # fill form choices
-    set_form.verb_type.choices = [ar_verbs.form, ir_verbs.form, er_verbs.form, irregular_verbs.form,
-                                  o_to_ue.form, e_to_ie.form, e_to_i.form]
+    set_form.verb_type.choices = [ar_verbs, ir_verbs, er_verbs, irregular_verbs, 'o to ue', 'e to i', 'e to ie']
 
     # check if the incoming POST request comes from the setup form
     if request.method == 'POST' and set_form.submit1.data is True:
@@ -118,6 +151,7 @@ def setup():
         tenses = set_form.tenses.data
         preset_list = set_form.verb_type.data
         infinitives = parse_text(set_form.infinitives.data)
+        subjects = set_form.subject.data
 
         # clear form entry
         set_form.title.data = ''
@@ -136,6 +170,28 @@ def setup():
 
             # query the addition that was just made
             query_set = db.session.query(Practice_Set).filter_by(label=set_title).first()
+
+            # check the form for subject data
+            if subjects:
+                for subj in subjects:
+                    if subj == 'plural':
+                        # query the subject type
+                        query_subjects = Subject.query.filter_by(number_id=2).all()
+                        for subj_id in query_subjects:
+                            set_subject = SetSubjects(practice_set=query_set, subject=subj_id)
+                            db.session.add(set_subject)
+
+                    if subj == 'singular':
+                        query_subjects = Subject.query.filter_by(number_id=1).all()
+                        for subj_id in query_subjects:
+                            set_subject = SetSubjects(practice_set=query_set, subject=subj_id)
+                            db.session.add(set_subject)
+
+                    if subj == 'formal':
+                        query_subjects = Subject.query.filter_by(number_id=3).all()
+                        for subj_id in query_subjects:
+                            set_subject = SetSubjects(practice_set=query_set, subject=subj_id)
+                            db.session.add(set_subject)
 
             # checks for form input from the custom infinitives box
             if infinitives:
@@ -173,19 +229,63 @@ def setup():
                 # TODO the word 'form' has too many meanings. This is an annoying change to make but probably ultimately
                 # necessary--everywhere you say "form" and you mean "verb form" replace it with verb_form or VerbForm
                 for form in preset_list:
-                    query_form = Form.query.filter_by(form=form).first()
-                    query_verbs = Verb.query.filter_by(form=query_form).all()
-                    for verb in query_verbs:
-                        set_infin = SetVerbs(verb=verb, practice_set=query_set)
-                        db.session.add(set_infin)
-                    # repeat above step for tenses
-                    for i in tenses:
-                        # query the tense
-                        query_tense = Tense.query.filter_by(tense=i).first()
+                    if form == 'e to i':
+                        print()
+                        query_verbs = Verb.query.filter_by(stem_id=3).all()
 
-                        set_tense = SetTenses(tense=query_tense, practice_set=query_set)
-                        db.session.add(set_tense)
-                db.session.commit()
+                        # add each queried verb to the db session, will be committed later on
+                        for verb in query_verbs:
+                            set_infin = SetVerbs(verb=verb, practice_set=query_set)
+                            db.session.add(set_infin)
+                        # repeat above step for tenses
+                        for i in tenses:
+                            # query the tense
+                            query_tense = Tense.query.filter_by(tense=i).first()
+
+                            set_tense = SetTenses(tense=query_tense, practice_set=query_set)
+                            db.session.add(set_tense)
+
+                    elif form == 'e to ie':
+                        query_verbs = Verb.query.filter_by(stem_id=2).all()
+                        for verb in query_verbs:
+                            set_infin = SetVerbs(verb=verb, practice_set=query_set)
+                            db.session.add(set_infin)
+                        # repeat above step for tenses
+                        for i in tenses:
+                            # query the tense
+                            query_tense = Tense.query.filter_by(tense=i).first()
+
+                            set_tense = SetTenses(tense=query_tense, practice_set=query_set)
+                            db.session.add(set_tense)
+                    elif form == 'o to ue':
+                        query_verbs = Verb.query.filter_by(stem_id=1).all()
+                        for verb in query_verbs:
+                            set_infin = SetVerbs(verb=verb, practice_set=query_set)
+                            db.session.add(set_infin)
+                        # repeat above step for tenses
+                        for i in tenses:
+                            # query the tense
+                            query_tense = Tense.query.filter_by(tense=i).first()
+
+                            set_tense = SetTenses(tense=query_tense, practice_set=query_set)
+                            db.session.add(set_tense)
+
+                    else:
+
+                        query_form = Form.query.filter_by(form=form).first()
+                        query_verbs = Verb.query.filter_by(form=query_form).all()
+
+                        for verb in query_verbs:
+                            set_infin = SetVerbs(verb=verb, practice_set=query_set)
+                            db.session.add(set_infin)
+                        # repeat above step for tenses
+                        for i in tenses:
+                            # query the tense
+                            query_tense = Tense.query.filter_by(tense=i).first()
+
+                            set_tense = SetTenses(tense=query_tense, practice_set=query_set)
+                            db.session.add(set_tense)
+                    db.session.commit()
 
             if unknown_infinitives:
 
@@ -228,11 +328,6 @@ def setup():
                            form=set_form,
                            unknown_inf_form=unknown_inf_form)
 
-    # else:
-    # return render_template('setup.html', form=form, exists=session.get('exists'),
-    #                        unknown_infinitives=unknown_infinitives,
-    #                        forms=Form.query.all())
-
 
 # route for selecting which 'practice set' to be used
 @app.route('/practice-select', methods=['GET', 'POST'])
@@ -265,17 +360,19 @@ def practice(active_set):
         infin_query = db.session.query(SetVerbs).filter_by(set_id=set_id).all()
         session['infinitives_list'] = [infin.verb.infinitive for infin in infin_query]
         session['infinitive_forms_list'] = [infin.verb.form_id for infin in infin_query]
+        session['infinitive_stem_id'] = [infin.verb.stem_id for infin in infin_query]
         session['infinitive_ids_list'] = [infin.verb.id for infin in infin_query]
         infinitives_list = session.get('infinitives_list')
         infinitive_forms = session.get('infinitive_forms_list')
         infinitive_ids = session.get('infinitive_ids_list')
+        infinitive_stems = session.get('infinitive_stem_id')
 
         query_tenses = db.session.query(SetTenses).filter_by(set_id=set_id).all()
         session['tense_list'] = [tense.tense.tense for tense in query_tenses]
         available_tenses = session.get('tense_list')
 
-        subjects = Subject.query.all()
-        session['subj_list'] = [subj.subject for subj in subjects]
+        subject_query = db.session.query(SetSubjects).filter_by(set_id=set_id).all()
+        session['subj_list'] = [subj.subject.subject for subj in subject_query]
         subjects = session.get('subj_list')
 
     # if the sessions set has not changed, keep using the same lists
@@ -284,19 +381,19 @@ def practice(active_set):
         infinitives_list = session.get('infinitives_list')
         infinitive_forms = session.get('infinitive_forms_list')
         infinitive_ids = session.get('infinitive_ids_list')
+        infinitive_stems = session.get('infinitive_stem_id')
         subjects = session.get('subj_list')
 
-    session['correct'] = False
     session['incorrect'] = False
 
     if request.method == 'POST':
         session['user_answer'] = request.form.get('answer')
 
         if session.get('user_answer') == session.get('correct_answer'):
-            session['correct'] = True
             session['incorrect'] = False
+            flash('correct!', category='message')
+            return redirect(url_for('practice', active_set=active_set))
         else:
-            session['correct'] = False
             session['incorrect'] = True
 
         return render_template('practice_view.html', title=active_set,
@@ -304,7 +401,6 @@ def practice(active_set):
                                infinitive=session.get('infinitive'),
                                subject=session.get('subj'),
                                tense=session.get('tense'),
-                               correct=session.get('correct'),
                                incorrect=session.get('incorrect'))
 
     else:
@@ -314,6 +410,8 @@ def practice(active_set):
         idx = infinitives_list.index(target_infin)
         target_form_id = infinitive_forms[idx]
         target_infin_id = infinitive_ids[idx]
+        target_stem_id = infinitive_stems[idx]
+        print(target_stem_id)
         target_subj = random.choice(subjects)
         target_tense = random.choice(available_tenses)
 
@@ -323,13 +421,14 @@ def practice(active_set):
         infinitive = session.get('infinitive')
         subj = session.get('subj')
         irr_form = Form.query.filter_by(form='irregular').first()
+
         tense = session.get('tense')
 
         # conjugate verb through computation if function not irregular
         # check ending of verb to get correct conjugation
         # then match the subject prompt to the correct ending
         if target_form_id != irr_form.id:
-            if infinitive.endswith('ar'):
+            if infinitive.endswith('ar') and target_stem_id is None:
                 match subj:
                     case 'yo':
                         session['correct_answer'] = infinitive[:-2] + 'o'
@@ -352,7 +451,7 @@ def practice(active_set):
                     case 'ustedes':
                         session['correct_answer'] = infinitive[:-2] + 'an'
 
-            if infinitive.endswith('er'):
+            if infinitive.endswith('er') and target_stem_id is None:
                 match subj:
                     case 'yo':
                         session['correct_answer'] = infinitive[:-2] + 'o'
@@ -375,7 +474,7 @@ def practice(active_set):
                     case 'ustedes':
                         session['correct_answer'] = infinitive[:-2] + 'en'
 
-            if infinitive.endswith('ir'):
+            if infinitive.endswith('ir') and target_stem_id is None:
                 match subj:
                     case 'yo':
                         session['correct_answer'] = infinitive[:-2] + 'o'
@@ -397,6 +496,185 @@ def practice(active_set):
                         session['correct_answer'] = infinitive[:-2] + 'en'
                     case 'ustedes':
                         session['correct_answer'] = infinitive[:-2] + 'en'
+
+            # if stem changer is e to i, and the verb ends with ir, perform the correct conjugation
+            if target_stem_id == 3 and infinitive.endswith('ir'):
+                stem = infinitive[:-2]
+                vow_idx = stem.rindex('e')  # finds the penultimate vowel in the verb
+
+                match subj:
+                    case 'yo':
+                        session['correct_answer'] = infinitive[:vow_idx] + 'i' + infinitive[vow_idx + 1:-2] + 'o'
+                    case 'tu':
+                        session['correct_answer'] = infinitive[:vow_idx] + 'i' + infinitive[vow_idx + 1:-2] + 'es'
+                    case 'el':
+                        session['correct_answer'] = infinitive[:vow_idx] + 'i' + infinitive[vow_idx + 1:-2] + 'e'
+                    case 'ella':
+                        session['correct_answer'] = infinitive[:vow_idx] + 'i' + infinitive[vow_idx + 1:-2] + 'e'
+                    case 'usted':
+                        session['correct_answer'] = infinitive[:vow_idx] + 'i' + infinitive[vow_idx + 1:-2] + 'e'
+                    case 'nosotros':
+                        session['correct_answer'] = infinitive[:-2] + 'imos'
+                    case 'vosotros':
+                        session['correct_answer'] = infinitive[:-2] + 'is'
+                    case 'ellos':
+                        session['correct_answer'] = infinitive[:vow_idx] + 'i' + infinitive[vow_idx + 1:-2] + 'en'
+                    case 'ellas':
+                        session['correct_answer'] = infinitive[:vow_idx] + 'i' + infinitive[vow_idx + 1:-2] + 'en'
+                    case 'ustedes':
+                        session['correct_answer'] = infinitive[:vow_idx] + 'i' + infinitive[vow_idx + 1:-2] + 'en'
+
+            # check if verb is an e to ie stem changer, match conjugation
+            if target_stem_id == 2:
+                stem = infinitive[:-2]
+                vow_idx = stem.rindex('e')  # finds the penultimate vowel in the verb
+                if infinitive.endswith('ar'):
+                    match subj:
+                        case 'yo':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ie' + infinitive[vow_idx + 1:-2] + 'o'
+                        case 'tu':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ie' + infinitive[vow_idx + 1:-2] + 'as'
+                        case 'el':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ie' + infinitive[vow_idx + 1:-2] + 'a'
+                        case 'ella':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ie' + infinitive[vow_idx + 1:-2] + 'a'
+                        case 'usted':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ie' + infinitive[vow_idx + 1:-2] + 'a'
+                        case 'nosotros':
+                            session['correct_answer'] = infinitive[:-2] + 'amos'
+                        case 'vosotros':
+                            session['correct_answer'] = infinitive[:-2] + 'ais'
+                        case 'ellos':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ie' + infinitive[vow_idx + 1:-2] + 'an'
+                        case 'ellas':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ie' + infinitive[vow_idx + 1:-2] + 'an'
+                        case 'ustedes':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ie' + infinitive[vow_idx + 1:-2] + 'an'
+
+                elif infinitive.endswith('er'):
+
+                    match subj:
+                        case 'yo':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ie' + infinitive[vow_idx + 1:-2] + 'o'
+                        case 'tu':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ie' + infinitive[vow_idx + 1:-2] + 'es'
+                        case 'el':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ie' + infinitive[vow_idx + 1:-2] + 'e'
+                        case 'ella':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ie' + infinitive[vow_idx + 1:-2] + 'e'
+                        case 'usted':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ie' + infinitive[vow_idx + 1:-2] + 'e'
+                        case 'nosotros':
+                            session['correct_answer'] = infinitive[:-2] + 'emos'
+                        case 'vosotros':
+                            session['correct_answer'] = infinitive[:-2] + 'eis'
+                        case 'ellos':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ie' + infinitive[vow_idx + 1:-2] + 'en'
+                        case 'ellas':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ie' + infinitive[vow_idx + 1:-2] + 'en'
+                        case 'ustedes':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ie' + infinitive[vow_idx + 1:-2] + 'en'
+
+                elif infinitive.endswith('ir'):
+
+                    match subj:
+                        case 'yo':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ie' + infinitive[vow_idx + 1:-2] + 'o'
+                        case 'tu':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ie' + infinitive[vow_idx + 1:-2] + 'es'
+                        case 'el':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ie' + infinitive[vow_idx + 1:-2] + 'e'
+                        case 'ella':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ie' + infinitive[vow_idx + 1:-2] + 'e'
+                        case 'usted':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ie' + infinitive[vow_idx + 1:-2] + 'e'
+                        case 'nosotros':
+                            session['correct_answer'] = infinitive[:-2] + 'imos'
+                        case 'vosotros':
+                            session['correct_answer'] = infinitive[:-2] + 'is'
+                        case 'ellos':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ie' + infinitive[vow_idx + 1:-2] + 'en'
+                        case 'ellas':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ie' + infinitive[vow_idx + 1:-2] + 'en'
+                        case 'ustedes':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ie' + infinitive[vow_idx + 1:-2] + 'en'
+
+            # check if the verb is an o to ue stem changer
+            if target_stem_id == 1:
+                stem = infinitive[:-2]
+                vow_idx = stem.rindex('o')  # finds the penultimate vowel in the verb
+
+                if infinitive.endswith('ar'):
+                    match subj:
+                        case 'yo':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ue' + infinitive[vow_idx + 1:-2] + 'o'
+                        case 'tu':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ue' + infinitive[vow_idx + 1:-2] + 'as'
+                        case 'el':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ue' + infinitive[vow_idx + 1:-2] + 'a'
+                        case 'ella':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ue' + infinitive[vow_idx + 1:-2] + 'a'
+                        case 'usted':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ue' + infinitive[vow_idx + 1:-2] + 'a'
+                        case 'nosotros':
+                            session['correct_answer'] = infinitive[:-2] + 'amos'
+                        case 'vosotros':
+                            session['correct_answer'] = infinitive[:-2] + 'ais'
+                        case 'ellos':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ue' + infinitive[vow_idx + 1:-2] + 'an'
+                        case 'ellas':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ue' + infinitive[vow_idx + 1:-2] + 'an'
+                        case 'ustedes':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ue' + infinitive[vow_idx + 1:-2] + 'an'
+
+                elif infinitive.endswith('er'):
+
+                    match subj:
+                        case 'yo':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ue' + infinitive[vow_idx + 1:-2] + 'o'
+                        case 'tu':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ue' + infinitive[vow_idx + 1:-2] + 'es'
+                        case 'el':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ue' + infinitive[vow_idx + 1:-2] + 'e'
+                        case 'ella':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ue' + infinitive[vow_idx + 1:-2] + 'e'
+                        case 'usted':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ue' + infinitive[vow_idx + 1:-2] + 'e'
+                        case 'nosotros':
+                            session['correct_answer'] = infinitive[:-2] + 'emos'
+                        case 'vosotros':
+                            session['correct_answer'] = infinitive[:-2] + 'eis'
+                        case 'ellos':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ue' + infinitive[vow_idx + 1:-2] + 'en'
+                        case 'ellas':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ue' + infinitive[vow_idx + 1:-2] + 'en'
+                        case 'ustedes':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ue' + infinitive[vow_idx + 1:-2] + 'en'
+
+                elif infinitive.endswith('ir'):
+
+                    match subj:
+                        case 'yo':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ue' + infinitive[vow_idx + 1:-2] + 'o'
+                        case 'tu':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ue' + infinitive[vow_idx + 1:-2] + 'es'
+                        case 'el':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ue' + infinitive[vow_idx + 1:-2] + 'e'
+                        case 'ella':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ue' + infinitive[vow_idx + 1:-2] + 'e'
+                        case 'usted':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ue' + infinitive[vow_idx + 1:-2] + 'e'
+                        case 'nosotros':
+                            session['correct_answer'] = infinitive[:-2] + 'imos'
+                        case 'vosotros':
+                            session['correct_answer'] = infinitive[:-2] + 'is'
+                        case 'ellos':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ue' + infinitive[vow_idx + 1:-2] + 'en'
+                        case 'ellas':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ue' + infinitive[vow_idx + 1:-2] + 'en'
+                        case 'ustedes':
+                            session['correct_answer'] = infinitive[:vow_idx] + 'ue' + infinitive[vow_idx + 1:-2] + 'en'
+
 
         # use db lookup for conjugation
         else:

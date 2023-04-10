@@ -7,7 +7,7 @@
     <form action="" method="POST" class="add">
         {{ form.csrf_token }}
 
-        <p>{{ form.infinitive.label }}{{ form.infinitive(size=20) }}</p>
+        <p>{{ form.infinitive.label }}{{ form.infinitive }}</p>
 
         {% if form.infinitive.errors %}
             <ul>
@@ -18,9 +18,19 @@
         {% endif %}
 
 
-        {{ form.form.label }}{{ form.form(size=7) }}
+        {{ form.form.label }}{{ form.form(size=1) }}
 
         {% if form.form.errors %}
+            <ul>
+                {% for error in form.form.errors %}
+                    <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
+        {{ form.stem_changer.label }}{{ form.stem_changer(size=3) }}
+
+        {% if form.stem_changer.errors %}
             <ul>
                 {% for error in form.form.errors %}
                     <li>{{ error }}</li>
@@ -39,17 +49,19 @@
 
 
             <div>
-                <h2>{{ type.form.upper() }}</h2>
+                <h2>{{ type.upper() }}</h2>
                 <table>
                     <tr>
                         <th>Infinitive</th>
                         <th>Form</th>
+                        <th>stem changer</th>
                     </tr>
                     {% for infinitive in infinitives_list %}
-                        {% if infinitive.form.form == type.form %}
+                        {% if infinitive.form.form == type %}
                             <tr>
                                 <td>{{ infinitive.infinitive }}</td>
                                 <td>{{ infinitive.form.form }}</td>
+                                <td>{{ infinitive.stem.stem }}</td>
                             </tr>
                         {% else %}
                         {% endif %}

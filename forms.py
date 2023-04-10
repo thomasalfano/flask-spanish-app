@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm, Form
-from wtforms import StringField, TextAreaField, widgets, SelectMultipleField, SelectField, FieldList, FormField,\
+from wtforms import StringField, TextAreaField, widgets, SelectMultipleField, SelectField, FieldList, FormField, \
     SubmitField
 from wtforms.validators import DataRequired, InputRequired
 
@@ -22,6 +22,7 @@ class InfinitiveForm(FlaskForm):
     """
     infinitive = TextAreaField('Infinitive', validators=[DataRequired()])
     form = SelectField('Form', choices=[], validators=[InputRequired()])
+    stem_changer = MultiCheckBox('Stem Change', choices=['o to ue', 'e to i', 'e to ie'])
 
 
 class CreateSetForm(FlaskForm):
@@ -33,6 +34,7 @@ class CreateSetForm(FlaskForm):
     TextAreaField- used for adding custom infinitives to be used in practice sets
     """
     title = StringField('Title', validators=[DataRequired()])
+    subject = MultiCheckBox('Subjects', choices=['singular', 'plural', 'formal'])
     tenses = MultiCheckBox('Tenses', choices=[])
     verb_type = MultiCheckBox('Type', choices=[])
     infinitives = TextAreaField('Infinitives')
@@ -60,8 +62,7 @@ class IrregularForm(FlaskForm):
 
 class TypeForm(Form):
     verb = StringField('verb', validators=[DataRequired()])
-    type = SelectField('form', choices=['ar verbs', 'er verbs', 'ir verbs', 'o to ue', 'e to i', 'e to ie',
-                                        'irregular'])
+    type = SelectField('form', choices=['ar verbs', 'er verbs', 'ir verbs'])
 
 
 class UnknownInfForm(FlaskForm):

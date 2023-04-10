@@ -57,6 +57,22 @@ class SetTenses(db.Model):
     practice_set = db.relationship('Practice_Set', back_populates='tenses')
 
 
+class SetSubjects(db.Model):
+    """
+    Database model that represents the association table between the subjects table and the practice set table.
+
+    ForeignKey referencing the ids of the practice_set and subjects table
+    """
+    __tablename__ = 'set_subjects'
+    id = db.Column(db.Integer, primary_key=True)
+    set_id = db.Column(db.Integer, db.ForeignKey('practice_set.id'))
+    subject_id = db.Column(db.Integer, db.ForeignKey('subjects.id'))
+
+    # relationships
+    subject = db.relationship('Subject', back_populates='practice_sets')
+    practice_set = db.relationship('Practice_Set', back_populates='subjects')
+
+
 # verb table (id, infin, form(fk))
 class Verb(db.Model):
     """
@@ -69,12 +85,28 @@ class Verb(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     infinitive = db.Column(db.String(64), unique=True)
     form_id = db.Column(db.Integer, db.ForeignKey('forms.id'))
+    stem_id = db.Column(db.Integer, db.ForeignKey('stems.id'), nullable=True, default=None)
 
     # relationship
     practice_sets = db.relationship('SetVerbs', back_populates='verb')
 
     def __repr__(self):
         return f"infinitive:'{self.infinitive}', 'form_id:{self.form_id}'"
+
+
+class Stems(db.Model):
+    """
+    Database model that stores the three different types of stem changers
+
+    Has a one-to-many relationship with the Verbs table
+    """
+
+    __tablename__ = 'stems'
+    id = db.Column(db.Integer, primary_key=True)
+    stem = db.Column(db.String(64), unique=True)
+
+    # relationship
+    infinitives = db.relationship('Verb', backref='stem')
 
 
 # form [id, label] ("static")
@@ -102,9 +134,24 @@ class Subject(db.Model):
     __tablename__ = 'subjects'
     id = db.Column(db.Integer, primary_key=True)
     subject = db.Column(db.String(64), unique=True)
+    number_id = db.Column(db.Integer, db.ForeignKey('pronoun_number.id'))
 
     def __repr__(self):
         return f'{self.subject}'
+
+    # relationship
+    practice_sets = db.relationship('SetSubjects', back_populates='subject')
+    number = db.relationship('PronounNumber', back_populates='subjects')
+
+
+class PronounNumber(db.Model):
+    """Database model for the different type of pronouns, singular, plural, and formal"""
+    __tablename__ = 'pronoun_number'
+    id = db.Column(db.Integer, primary_key=True)
+    number = db.Column(db.String(64), unique=True)
+
+    # relationship
+    subjects = db.relationship('Subject', back_populates='number')
 
 
 # tense [id, label]
@@ -140,6 +187,7 @@ class Practice_Set(db.Model):
     # relationship for table
     verbs = db.relationship('SetVerbs', back_populates='practice_set')
     tenses = db.relationship('SetTenses', back_populates='practice_set')
+    subjects = db.relationship('SetSubjects', back_populates='practice_set')
 
     def __repr__(self):
         return f'{self.label}'
