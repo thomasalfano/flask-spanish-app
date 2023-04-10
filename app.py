@@ -16,10 +16,16 @@ db.init_app(app)
 migrate = Migrate(app, db)
 
 
+# TODO rename Form class to something like VerbForm or VerbType (it's confusing and dangerous bc WTForms has a class named Form as its base)
+# TODO break functions into smaller ones (e.g you should separate out each type of conjugation into its own method)
+# TODO similarly break up the practice_set method--no method should ever be longer than 100 lines, and that's a lot
+
 @app.route('/')
 def index():
     return render_template('index.html')
 
+# TODO: all the "function-level" comments should be in the doccomments
+# TODO: make sure doccomments are accurate and clear (eg this form only works for infins of a single type)
 
 # verb view function that shows all infinitives in the db, grouped into their respective categories
 # add infinitive to list upon successful form completion
@@ -35,8 +41,8 @@ def verb_view():
     verb_forms = ['ar verbs', 'er verbs', 'ir verbs', 'irregular']
     form.form.choices = verb_forms
 
-    # if form validates, query the verb table using form data
-    # add new entry if verb does not exist
+    # add infinitives to the db that aren't already in it
+
     if form.validate_on_submit():
         infin_list = parse_text(form.infinitive.data)
 
@@ -45,11 +51,9 @@ def verb_view():
         else:
             stem_changer = None
 
-        # add everything from text-field input
         for verb in infin_list:
             existing_verb = Verb.query.filter_by(infinitive=verb).first()
 
-            # if not an existing verb in db
             # add new verb to db using form data
             if not existing_verb:
                 if stem_changer:
@@ -64,6 +68,15 @@ def verb_view():
                     verb_form = db.session.query(Form).filter_by(form=form.form.data).first()
                     new_verb = Verb(infinitive=form_infin, form=verb_form)
                     db.session.add(new_verb)
+
+                form_infin = verb
+                verb_form = db.session.query(Form).filter_by(form=form.form.data).first()
+                new_verb = Verb(infinitive=form_infin, form=verb_form)
+                db.session.add(new_verb)
+
+            # TODO looks like this stops the verb-adding process as soon as an already-existing
+            # infinitive is found--is that what you want to do? Seems like it might be better just to
+            # ignore those and maybe flash a message at the end that notes the infinitives that already existed
 
             else:
                 flash('This infinitive exists already', category='message')
@@ -89,13 +102,23 @@ def setup():
     :return: Displays form used to create practice sets, display pop-up window for unrecognized verbs.
     """
 
+    # TODO the logic of this function is fairly complex; I'd suggest some comments that explain what's
+    # going on in more general terms. What is a "practice set"? What are these two forms for?
+    # TODO It might also be worth writing a 'helper method' that deals with the unknown-infinitive form
+
+
     # variables to be used in html templates
     set_form = CreateSetForm()
     unknown_inf_form = UnknownInfForm()
     tense_choices = Tense.query.all()
     set_form.tenses.choices = [str(i) for i in tense_choices]
     unknown_infinitives = []
+
+    # TODO what does 'exists' mean? This needs to be documented (and maybe use a different name?)
     session['exists'] = True
+
+    # TODO this queries more that ar verbs. Maybe adjust comment along the lines of "get lists of
+    # existing verbs by type to populate form"
 
     # query the ar verbs for form checkbox
     if session.get('ar verbs') is None:
@@ -141,6 +164,9 @@ def setup():
             new_set = Practice_Set(label=set_title)
             db.session.add(new_set)
             db.session.commit()
+
+            # TODO what I see what you're aiming at, but it's clunky. Is it possible to adjust the SetVerbs() and
+            # SetTenses() constructors so that you can either use new_set or set_title?
 
             # query the addition that was just made
             query_set = db.session.query(Practice_Set).filter_by(label=set_title).first()
@@ -200,6 +226,8 @@ def setup():
             # add preset verb list if any boxes are checked
             if preset_list:
                 # for all boxes checked, add verbs with that corresponding type
+                # TODO the word 'form' has too many meanings. This is an annoying change to make but probably ultimately
+                # necessary--everywhere you say "form" and you mean "verb form" replace it with verb_form or VerbForm
                 for form in preset_list:
                     if form == 'e to i':
                         print()
