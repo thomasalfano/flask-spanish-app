@@ -333,7 +333,7 @@ def practice(active_set):
         # use db lookup for conjugation
         else:
 
-            conjugate_irregular(target_subj, target_infin_id)
+            session['correct_answer'] = conjugate_irregular(target_subj, target_infin_id)
 
         return render_template('practice_view.html', title=active_set,
                                correct_answer=session.get('correct_answer'),

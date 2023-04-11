@@ -350,7 +350,6 @@ def create_practice_set(data):
 
 
 def add_set_subjects(form_data, query_set):
-
     for subj in form_data:
         if subj == 'plural':
             # query the subject type
@@ -417,58 +416,24 @@ def add_preset_lists(form_data, query_set, tenses):
             print()
             query_verbs = Verb.query.filter_by(stem_id=3).all()
 
-            # add each queried verb to the db session, will be committed later on
-            for verb in query_verbs:
-                set_infin = SetVerbs(verb=verb, practice_set=query_set)
-                db.session.add(set_infin)
-            # repeat above step for tenses
-            for i in tenses:
-                # query the tense
-                query_tense = Tense.query.filter_by(tense=i).first()
-
-                set_tense = SetTenses(tense=query_tense, practice_set=query_set)
-                db.session.add(set_tense)
-
         elif form == 'e to ie':
             query_verbs = Verb.query.filter_by(stem_id=2).all()
-            for verb in query_verbs:
-                set_infin = SetVerbs(verb=verb, practice_set=query_set)
-                db.session.add(set_infin)
-            # repeat above step for tenses
-            for i in tenses:
-                # query the tense
-                query_tense = Tense.query.filter_by(tense=i).first()
 
-                set_tense = SetTenses(tense=query_tense, practice_set=query_set)
-                db.session.add(set_tense)
         elif form == 'o to ue':
             query_verbs = Verb.query.filter_by(stem_id=1).all()
-            for verb in query_verbs:
-                set_infin = SetVerbs(verb=verb, practice_set=query_set)
-                db.session.add(set_infin)
-            # repeat above step for tenses
-            for i in tenses:
-                # query the tense
-                query_tense = Tense.query.filter_by(tense=i).first()
-
-                set_tense = SetTenses(tense=query_tense, practice_set=query_set)
-                db.session.add(set_tense)
 
         else:
 
             query_form = Form.query.filter_by(form=form).first()
             query_verbs = Verb.query.filter_by(form=query_form).all()
 
-            for verb in query_verbs:
-                set_infin = SetVerbs(verb=verb, practice_set=query_set)
-                db.session.add(set_infin)
+        for verb in query_verbs:
+            set_infin = SetVerbs(verb=verb, practice_set=query_set)
+            db.session.add(set_infin)
             # repeat above step for tenses
-            for i in tenses:
-                # query the tense
-                query_tense = Tense.query.filter_by(tense=i).first()
-
-                set_tense = SetTenses(tense=query_tense, practice_set=query_set)
-                db.session.add(set_tense)
+        for i in tenses:
+            # query the tense
+            query_tense = Tense.query.filter_by(tense=i).first()
+            set_tense = SetTenses(tense=query_tense, practice_set=query_set)
+            db.session.add(set_tense)
         db.session.commit()
-
-
