@@ -5,7 +5,6 @@ from app.models import Subject, Tense, Form, Verb, SetVerbs, SetTenses, SetSubje
 from flask_migrate import Migrate
 
 app = create_app()
-migrate = Migrate(app, db)
 
 
 @app.shell_context_processor

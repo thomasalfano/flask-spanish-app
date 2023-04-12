@@ -12,6 +12,11 @@
             <li><a href="{{ url_for('main.verb_view') }}">Verb View</a></li>
             <li><a href="{{ url_for('main.setup') }}">Practice Set Setup</a></li>
             <li><a href="{{ url_for('main.add_irregular') }}">Add Irregular Verb Conjugations</a></li>
+            {% if current_user.is_authenticated %}
+                <li><a href="{{ url_for('auth.logout') }}">Log Out</a></li>
+            {% else %}
+                <li><a href="{{ url_for('auth.login') }}">Log In</a></li>
+            {% endif %}
 
         </ul>
     </nav>
