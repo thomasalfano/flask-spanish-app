@@ -9,7 +9,7 @@ import random
 
 @main.route('/')
 def index():
-    return render_template('index.html')
+    return redirect(url_for('main.practice_select'))
 
 
 # verb view function that shows all infinitives in the db, grouped into their respective categories
