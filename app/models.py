@@ -73,7 +73,7 @@ class SetSubjects(db.Model):
     practice_set = db.relationship('Practice_Set', back_populates='subjects')
 
 
-# verb table (id, infin, form(fk))
+# verb table (id, infin, verb_form(fk))
 class Verb(db.Model):
     """
     Database model that contains all verbs and their respective forms
@@ -84,14 +84,14 @@ class Verb(db.Model):
     __tablename__ = 'verbs'
     id = db.Column(db.Integer, primary_key=True)
     infinitive = db.Column(db.String(64), unique=True)
-    form_id = db.Column(db.Integer, db.ForeignKey('forms.id'))
+    verbForm_id = db.Column(db.Integer, db.ForeignKey('forms.id'))
     stem_id = db.Column(db.Integer, db.ForeignKey('stems.id'), nullable=True, default=None)
 
     # relationship
     practice_sets = db.relationship('SetVerbs', back_populates='verb')
 
     def __repr__(self):
-        return f"infinitive:'{self.infinitive}', 'form_id:{self.form_id}'"
+        return f"infinitive:'{self.infinitive}', 'form_id:{self.verbForm_id}'"
 
 
 class Stems(db.Model):
@@ -109,8 +109,8 @@ class Stems(db.Model):
     infinitives = db.relationship('Verb', backref='stem')
 
 
-# form [id, label] ("static")
-class Form(db.Model):
+# verb_form [id, label] ("static")
+class VerbForm(db.Model):
     """
     Database model for potential verb-forms.
 
@@ -119,13 +119,13 @@ class Form(db.Model):
     """
     __tablename__ = 'forms'
     id = db.Column(db.Integer, primary_key=True)
-    form = db.Column(db.String, unique=True)
+    verb_form = db.Column(db.String, unique=True)
 
     # relationship
-    infinitives = db.relationship('Verb', backref='form')
+    infinitives = db.relationship('Verb', backref='verb_form')
 
     def __repr__(self):
-        return f'{self.form}'
+        return f'{self.verb_form}'
 
 
 # subject [id, label] ("static")
@@ -159,7 +159,7 @@ class Tense(db.Model):
     """
     Database model for possible tenses.
 
-    Tenses will be used in the practice-set creation process, to help lookup the correct form of infinitives.
+    Tenses will be used in the practice-set creation process, to help lookup the correct verb_form of infinitives.
     This table has many-to-many relationship with SetTenses
     """
     __tablename__ = 'tenses'

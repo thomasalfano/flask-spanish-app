@@ -6,7 +6,7 @@ from wtforms.validators import DataRequired, InputRequired
 
 class MultiCheckBox(SelectMultipleField):
     """
-    Widget that allows for multiple checkboxes - allows for input similar to SelectMultipleField, but in checkbox form
+    Widget that allows for multiple checkboxes - allows for input similar to SelectMultipleField, but in checkbox verb_form
     """
     widget = widgets.ListWidget(prefix_label=False)
     option_widget = widgets.CheckboxInput()
@@ -14,20 +14,20 @@ class MultiCheckBox(SelectMultipleField):
 
 class InfinitiveForm(FlaskForm):
     """
-    Flask form used to add infinitives to the database.
+    Flask verb_form used to add infinitives to the database.
 
     Contains a text-area field that allows for input of arbitrarily long list of verbs, and a Select Field that is used
     to select a verb's type
 
     """
     infinitive = TextAreaField('Infinitive', validators=[DataRequired()])
-    form = SelectField('Form', choices=[], validators=[InputRequired()])
+    form = SelectField('VerbForm', choices=[], validators=[InputRequired()])
     stem_changer = MultiCheckBox('Stem Change', choices=['o to ue', 'e to i', 'e to ie'])
 
 
 class CreateSetForm(FlaskForm):
     """
-    Flask form used for creation of practice sets
+    Flask verb_form used for creation of practice sets
 
     String field - used for the title of the set
     MultiCheckBox - used for selecting tenses and verb_types to be included in the set
@@ -43,7 +43,7 @@ class CreateSetForm(FlaskForm):
 
 class IrregularForm(FlaskForm):
     """
-    Flask form used for adding irregular verb conjugations to the database
+    Flask verb_form used for adding irregular verb conjugations to the database
 
     StringFields - text input for the different verb conjugations
     """
@@ -62,7 +62,7 @@ class IrregularForm(FlaskForm):
 
 class TypeForm(Form):
     verb = StringField('verb', validators=[DataRequired()])
-    type = SelectField('form', choices=['ar verbs', 'er verbs', 'ir verbs'])
+    type = SelectField('verb_form', choices=['ar verbs', 'er verbs', 'ir verbs'])
     stem_changer = MultiCheckBox('Stem Change', choices=['o to ue', 'e to i', 'e to ie'])
 
 

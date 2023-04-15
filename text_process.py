@@ -3,7 +3,7 @@ import string
 
 def parse_text(form_data):
     """
-    Text Processing for form input
+    Text Processing for verb_form input
     :param form_data: text-data from forms used in the app
     :return: list of words, seperated by white-space, stripped of punctuation
     """
