@@ -96,9 +96,9 @@ form.popover {
     position: fixed;
     margin-left: auto;
     margin-right: auto;
-    top: 80px;
-    width: 25vw;
-    height: 80vh;
+    top: 40px;
+    width: 30vw;
+    height: 60vh;
     left: 0;
     right: 0;
     text-align: center;

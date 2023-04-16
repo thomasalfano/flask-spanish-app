@@ -44,6 +44,11 @@
     {% for message in get_flashed_messages() %}
         <h2>{{ message }}</h2>
     {% endfor %}
+
+    {% for verb in existing_verbs %}
+        <h1>{{ verb.infinitive }}</h1>
+    {% endfor %}
+
     <div class="setup-tables">
         {% for type in verb_forms %}
 

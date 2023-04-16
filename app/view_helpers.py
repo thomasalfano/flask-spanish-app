@@ -1,5 +1,5 @@
 from .models import db
-from .models import Practice_Set, SetSubjects, SetVerbs, SetTenses, Subject, Tense, Verb, VerbForm
+from .models import Practice_Set, SetSubjects, SetVerbs, SetTenses, Subject, Tense, Verb, VerbForm, Stems
 from text_process import parse_text
 
 
@@ -84,6 +84,10 @@ def add_infinitives(form_data, query_set):
 
             query_set - a query result of a Practice Set that the infinitives should be added to
 
+            :returns
+
+            unknown_infins - list of any infins that were not found in the database
+
         """
 
     infinitives = parse_text(form_data)
@@ -150,3 +154,48 @@ def add_preset_lists(form_data, query_set, tenses):
             set_tense = SetTenses(tense=query_tense, practice_set=query_set)
             db.session.add(set_tense)
         db.session.commit()
+
+
+def add_unknown_infinitives(unknown_infinitives, set_title):
+    """ Used to add unknown infinitives to the database, and then to any connected practice sets.
+
+    Parameters
+    _________
+
+    unknown_infinitives - list of unknown infinitives (infinitives that are not found in the db Verbs table)
+                         that should be gathered from a form
+
+    set_title - the title of the associated practice set that the unknown verbs should be connected to
+    """
+
+    data = unknown_infinitives
+
+    for idx, verb in enumerate(data):  # for each verb in data add the verb, and it's type
+        verb = data[idx]['verb']
+        v_type = data[idx]['type']
+        if data[idx]['stem_changer']:  # check if verb_form gave stem changer data
+            v_stem = data[idx]['stem_changer'][0]
+        else:
+            v_stem = None
+        if v_stem is None:
+            verb_form = db.session.query(VerbForm).filter_by(verb_form=v_type).first()
+            new_verb = Verb(infinitive=verb, verb_form=verb_form)
+            db.session.add(new_verb)
+        else:
+            verb_form = db.session.query(VerbForm).filter_by(verb_form=v_type).first()
+            stem = db.session.query(Stems).filter_by(stem=v_stem).first()
+            new_verb = Verb(infinitive=verb, verb_form=verb_form, stem=stem)
+            db.session.add(new_verb)
+
+    db.session.commit()
+
+    # now that this verb exists in the db, we will add all of them to the db with the associated practice set
+    for idx, verb in enumerate(data):
+        infinitive = data[idx]['verb']
+        set_title = set_title
+        query_infin = Verb.query.filter_by(infinitive=infinitive).first()
+        query_set = Practice_Set.query.filter_by(label=set_title).first()
+        print(query_set)
+        set_infin = SetVerbs(verb=query_infin, practice_set=query_set)
+        db.session.add(set_infin)
+    db.session.commit()

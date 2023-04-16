@@ -13,6 +13,7 @@
                 <li><a href="{{ url_for('main.setup') }}">Practice Set Setup</a></li>
                 <li><a href="{{ url_for('main.add_irregular') }}">Add Irregular Verb Conjugations</a></li
                 <li><a href="{{ url_for('auth.logout') }}">Log Out</a></li>
+                <li><a href="{{ url_for('main.practice_select') }}">Start Practicing</a></li>
             {% else %}
                 <li><a href="{{ url_for('auth.login') }}">Log In</a></li>
                 <li><a href="{{ url_for('main.practice_select') }}">Start Practicing</a></li>

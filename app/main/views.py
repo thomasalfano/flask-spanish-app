@@ -28,6 +28,7 @@ def verb_view():
     """
     form = InfinitiveForm()
     infinitives_list = Verb.query.all()
+    existing_verbs = []
     verb_forms = ['ar verbs', 'er verbs', 'ir verbs', 'irregular']
     form.form.choices = verb_forms
 
@@ -59,8 +60,7 @@ def verb_view():
 
             else:
                 flash('This infinitive exists already', category='message')
-                return render_template('verb_view.html', infinitives_list=infinitives_list, form=form)
-
+                existing_verbs.append(existing_verb)
         form.infinitive.data = ''  # clears all verb_form data after completion
         form.form.data = ''
 
@@ -69,10 +69,10 @@ def verb_view():
         infinitives_list = Verb.query.all()
 
         return render_template('verb_view.html', infinitives_list=infinitives_list, form=form,
-                               verb_forms=verb_forms)
+                               verb_forms=verb_forms, existing_verbs=existing_verbs)
     else:
         return render_template('verb_view.html', infinitives_list=infinitives_list, form=form,
-                               verb_forms=verb_forms)
+                               verb_forms=verb_forms, existing_verbs=existing_verbs)
 
 
 @main.route('/setup', methods=['GET', 'POST'])
@@ -84,7 +84,27 @@ def setup():
     Function waits for a POST request from set_form or unknown_inf_form, when one of these condition is met, any data
     that was included in the verb_form will be added to the appropriate database table
 
-    FOR UNKNOWN INFINITIVES:
+    Forms
+    _____
+
+    set_form - this form is used to acquire all the details needed to create a practice set, including:
+        * title
+        * subjects to be prompted (singular, plural, formal)
+        * the tense(s) to be used in the set
+        * any preset lists of verbs that should be included (ex: all ar verbs)
+        * custom text box for adding specific verbs
+
+    unknown_inf_form - this form shows up when the user tries to create a practice set with infinitives that are not
+    already in the database.
+
+        * text box with the unknown infinitive(s)
+        * drop down for which type
+        * check boxes for specifying stem-change behavior if needed
+
+
+
+
+    Unknown Infinitives
     ________________________
 
     If any of the fields of set_form return an infinitive/verb that is not already in the database, it will get appended
@@ -99,7 +119,8 @@ def setup():
     tense_choices = Tense.query.all()
     set_form.tenses.choices = [str(i) for i in tense_choices]
     unknown_infinitives = []
-    session['exists'] = True
+    session['unknowns'] = False         # this session variable is used to determine if the unknown infinitive form
+                                        # needs to show up
 
     if session.get('ar verbs') is None:
         query_ar = VerbForm.query.filter_by(verb_form='ar verbs').first()
@@ -130,7 +151,7 @@ def setup():
             create_practice_set(set_form.data)
 
             query_set = db.session.query(Practice_Set).filter_by(label=set_form.title.data).first()
-
+            session['title'] = set_form.title.data
             tenses = set_form.tenses.data
             if tenses:
                 add_set_tenses(tenses, query_set)
@@ -144,10 +165,14 @@ def setup():
                 add_preset_lists(set_form.verb_type.data, query_set, tenses)
 
             infinitives = set_form.infinitives.data
+
             if infinitives:
                 unknown_infinitives = add_infinitives(set_form.infinitives.data, query_set)
+                print(unknown_infinitives)
 
-            if unknown_infinitives:
+            if len(unknown_infinitives) > 0:
+
+                session['unknowns'] = True
 
                 for unknown_inf in unknown_infinitives:
                     type_form = TypeForm()
@@ -160,38 +185,11 @@ def setup():
     if request.method == 'POST' and unknown_inf_form.submit2.data is True:
         data = unknown_inf_form.unknown_verb.data
 
-        for idx, verb in enumerate(data):  # for each verb in data add the verb, and it's type
-            verb = data[idx]['verb']
-            v_type = data[idx]['type']
-            if data[idx]['stem_changer']:  # check if verb_form gave stem changer data
-                v_stem = data[idx]['stem_changer'][0]
-            else:
-                v_stem = None
-            if v_stem is None:
-                verb_form = db.session.query(VerbForm).filter_by(verb_form=v_type).first()
-                new_verb = Verb(infinitive=verb, verb_form=verb_form)
-                db.session.add(new_verb)
-            else:
-                verb_form = db.session.query(VerbForm).filter_by(verb_form=v_type).first()
-                stem = db.session.query(Stems).filter_by(stem=v_stem).first()
-                new_verb = Verb(infinitive=verb, verb_form=verb_form, stem=stem)
-                db.session.add(new_verb)
-
-        db.session.commit()
-
-        # now that this verb exists in the db, we will add all of them to the db with the associated practice set
-        for idx, verb in enumerate(data):
-            infinitive = data[idx]['verb']
-            set_title = session.get('title')
-            query_infin = Verb.query.filter_by(infinitive=infinitive).first()
-            query_set = Practice_Set.query.filter_by(label=set_title).first()
-            set_infin = SetVerbs(verb=query_infin, practice_set=query_set)
-            db.session.add(set_infin)
-        db.session.commit()
+        add_unknown_infinitives(data, session.get('title'))
 
         return redirect(url_for('main.practice_select'))
 
-    return render_template('setup.html', exists=session.get('exists'),
+    return render_template('setup.html', unknowns=session.get('unknowns'),
                            unknown_infinitives=unknown_infinitives,
                            forms=VerbForm.query.all(),
                            form=set_form,
