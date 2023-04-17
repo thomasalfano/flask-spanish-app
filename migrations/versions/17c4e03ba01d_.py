@@ -133,7 +133,7 @@ def upgrade():
                     {'id': 4, 'subject': 'ella', 'number_id': 1},
                     {'id': 5, 'subject': 'usted', 'number_id': 3},
                     {'id': 6, 'subject': 'nosotros', 'number_id': 2},
-                    {'id': 7, 'subject': 'vosotros', 'number_id': 2},
+                    {'id': 7, 'subject': 'nosotras', 'number_id': 2},
                     {'id': 8, 'subject': 'ellos', 'number_id': 2},
                     {'id': 9, 'subject': 'ellas', 'number_id': 2},
                     {'id': 10, 'subject': 'ustedes', 'number_id': 3}]
